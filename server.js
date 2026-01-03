@@ -308,25 +308,25 @@ async function executePrepared(queryId, parameters, callback) {
             throw new Error(`Prepared query not found: ${queryId}`);
         }
 
-        const query = preparedQueries.get(queryId);
+        const storedQuery = preparedQueries.get(queryId);
         
         // Determine query type and execute accordingly
-        const queryType = query.trim().toUpperCase().split(' ')[0];
+        const queryType = storedQuery.trim().toUpperCase().split(' ')[0];
         
         let result;
         switch (queryType) {
             case 'SELECT':
-                result = await query(query, parameters, callback);
+                result = await query(storedQuery, parameters, callback);
                 break;
             case 'INSERT':
-                result = await insert(query, parameters, callback);
+                result = await insert(storedQuery, parameters, callback);
                 break;
             case 'UPDATE':
             case 'DELETE':
-                result = await update(query, parameters, callback);
+                result = await update(storedQuery, parameters, callback);
                 break;
             default:
-                result = await query(query, parameters, callback);
+                result = await query(storedQuery, parameters, callback);
                 break;
         }
 

@@ -11,13 +11,10 @@ description 'External MySQL connection pool resource using mysql2'
 author 'Ingenium Games'
 version '1.0.0'
 
--- Dependencies
-dependency 'mysql2' -- Installed via npm
-
 -- Server-side files
 server_scripts {
-    'server.js',
-    '_pool.js'
+    '_pool.js',
+    'server.js'
 }
 
 -- Client-side files (none needed for SQL resource)
