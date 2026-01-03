@@ -37,14 +37,29 @@ function processParameters(query, parameters) {
     const params = [];
     let processedQuery = query;
     
-    // Find all @paramName in query and replace with ?
+    // Find all unique @paramName in query and replace with ?
     const paramNames = query.match(/@\w+/g);
     if (paramNames) {
+        // Process each unique parameter name
+        const processedParams = new Set();
+        
         paramNames.forEach(paramName => {
             const key = paramName.substring(1); // Remove @
-            if (parameters.hasOwnProperty(key)) {
-                params.push(parameters[key]);
-                processedQuery = processedQuery.replace(paramName, '?');
+            
+            // Only process each parameter name once
+            if (!processedParams.has(paramName) && parameters.hasOwnProperty(key)) {
+                // Replace all occurrences of this parameter
+                const regex = new RegExp(paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                const count = (processedQuery.match(regex) || []).length;
+                
+                // Add the parameter value for each occurrence
+                for (let i = 0; i < count; i++) {
+                    params.push(parameters[key]);
+                }
+                
+                // Replace all occurrences with ?
+                processedQuery = processedQuery.replace(regex, '?');
+                processedParams.add(paramName);
             }
         });
     }
