@@ -1,0 +1,23 @@
+{
+  "name": "ingenium.sql",
+  "version": "1.0.0",
+  "description": "External MySQL connection pool resource for FiveM using mysql2",
+  "main": "server.js",
+  "scripts": {
+    "install": "npm install"
+  },
+  "keywords": [
+    "fivem",
+    "mysql",
+    "database",
+    "ingenium"
+  ],
+  "author": "Ingenium Games",
+  "license": "MIT",
+  "dependencies": {
+    "mysql2": "^3.6.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
