@@ -161,11 +161,6 @@ class ConnectionPool {
 // Create singleton instance
 const pool = new ConnectionPool();
 
-// Export for use in other modules
-global.exports('getPool', () => pool);
-global.exports('isReady', () => pool.ready());
-global.exports('getStats', () => pool.getStats());
-
 // Initialize on resource start
 setImmediate(async () => {
     await pool.initialize();
@@ -177,3 +172,6 @@ on('onResourceStop', (resourceName) => {
         pool.close();
     }
 });
+
+// Export pool instance for use in other modules (Node.js style)
+module.exports = pool;

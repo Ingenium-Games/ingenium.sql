@@ -24,7 +24,7 @@ function c.sql.Query(query, parameters, callback)
         params = {}
     end
     
-    return exports['ig.core']:query(query, params, cb)
+    return exports['ig.sql']:query(query, params, cb)
 end
 
 --- Execute a SELECT query that returns a single row
@@ -41,7 +41,7 @@ function c.sql.FetchSingle(query, parameters, callback)
         params = {}
     end
     
-    return exports['ig.core']:fetchSingle(query, params, cb)
+    return exports['ig.sql']:fetchSingle(query, params, cb)
 end
 
 --- Execute a SELECT query that returns a single value
@@ -58,7 +58,7 @@ function c.sql.FetchScalar(query, parameters, callback)
         params = {}
     end
     
-    return exports['ig.core']:fetchScalar(query, params, cb)
+    return exports['ig.sql']:fetchScalar(query, params, cb)
 end
 
 --- Execute an INSERT query
@@ -75,7 +75,7 @@ function c.sql.Insert(query, parameters, callback)
         params = {}
     end
     
-    return exports['ig.core']:insert(query, params, cb)
+    return exports['ig.sql']:insert(query, params, cb)
 end
 
 --- Execute an UPDATE or DELETE query
@@ -92,7 +92,7 @@ function c.sql.Update(query, parameters, callback)
         params = {}
     end
     
-    return exports['ig.core']:update(query, params, cb)
+    return exports['ig.sql']:update(query, params, cb)
 end
 
 --- Execute multiple queries in a transaction
@@ -100,7 +100,7 @@ end
 ---@param callback function|nil Optional callback(success, results)
 ---@return table {success, results}
 function c.sql.Transaction(queries, callback)
-    return exports['ig.core']:transaction(queries, callback)
+    return exports['ig.sql']:transaction(queries, callback)
 end
 
 --- Execute multiple queries as a batch (without transaction)
@@ -108,7 +108,7 @@ end
 ---@param callback function|nil Optional callback(results)
 ---@return table Results array
 function c.sql.Batch(queries, callback)
-    return exports['ig.core']:batch(queries, callback)
+    return exports['ig.sql']:batch(queries, callback)
 end
 
 -- ====================================================================================--
@@ -119,7 +119,7 @@ end
 ---@param query string SQL query to prepare
 ---@return string Query ID
 function c.sql.PrepareQuery(query)
-    return exports['ig.core']:prepareQuery(query)
+    return exports['ig.sql']:prepareQuery(query)
 end
 
 --- Execute a prepared query
@@ -128,7 +128,7 @@ end
 ---@param callback function|nil Optional callback(affectedRows)
 ---@return number Affected rows
 function c.sql.ExecutePrepared(queryId, parameters, callback)
-    return exports['ig.core']:executePrepared(queryId, parameters, callback)
+    return exports['ig.sql']:executePrepared(queryId, parameters, callback)
 end
 
 -- ====================================================================================--
@@ -138,7 +138,7 @@ end
 --- Check if SQL connection is ready
 ---@return boolean True if ready
 function c.sql.IsReady()
-    return exports['ig.core']:isReady()
+    return exports['ig.sql']:isReady()
 end
 
 --- Wait for SQL connection to be ready
@@ -160,7 +160,7 @@ end
 --- Get SQL performance statistics
 ---@return table Statistics object
 function c.sql.GetStats()
-    return exports['ig.core']:getStats()
+    return exports['ig.sql']:getStats()
 end
 
 -- ====================================================================================--
