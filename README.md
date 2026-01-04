@@ -260,9 +260,23 @@ While inspired by oxmysql, this resource is tailored for the ingenium framework:
 - Resource name is `ingenium.sql` instead of `oxmysql`
 - Includes `_handler.lua` for `ig.sql` namespace integration with ingenium core
 - Provides compatibility with oxmysql and mysql-async via `provide` directives
+- Includes compatibility exports: `single`, `scalar`, `prepare`, `execute`, `fetchAll`
 - Simplified export structure
 - Custom initialization events
 - Adapted for ingenium resource patterns
+
+## Compatibility with oxmysql and mysql-async
+
+This resource can be used as a drop-in replacement for oxmysql or mysql-async by using the `provide` directive. Resources expecting oxmysql or mysql-async will automatically use this resource instead.
+
+**Compatibility exports provided:**
+- `single` (alias for `fetchSingle`) - oxmysql compatibility
+- `scalar` (alias for `fetchScalar`) - oxmysql compatibility
+- `prepare` (alias for `prepareQuery`) - oxmysql compatibility
+- `execute` (smart router) - oxmysql/mysql-async compatibility
+- `fetchAll` (alias for `query`) - mysql-async compatibility
+
+The `execute` function automatically detects the query type (SELECT, INSERT, UPDATE, DELETE) and routes to the appropriate handler, providing compatibility with both libraries' usage patterns.
 
 ## Database Recommendations
 

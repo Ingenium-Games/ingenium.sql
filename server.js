@@ -370,10 +370,41 @@ function getStats() {
     return global.pool ? global.pool.getStats() : null;
 }
 
+/**
+ * Execute function - compatibility wrapper for oxmysql and mysql-async
+ * Automatically routes to the appropriate function based on query type
+ */
+async function execute(sqlQuery, parameters, callback) {
+    try {
+        const queryType = sqlQuery.trim().toUpperCase().split(' ')[0];
+        
+        // Route to appropriate function based on query type
+        switch (queryType) {
+            case 'SELECT':
+                return await query(sqlQuery, parameters, callback);
+            case 'INSERT':
+                return await insert(sqlQuery, parameters, callback);
+            case 'UPDATE':
+            case 'DELETE':
+                return await update(sqlQuery, parameters, callback);
+            default:
+                // Default to query for safety
+                return await query(sqlQuery, parameters, callback);
+        }
+    } catch (error) {
+        console.error(`^1[ig.sql ERROR] Execute failed: ${error.message}^7`);
+        if (callback && typeof callback === 'function') {
+            callback(null);
+        }
+        return null;
+    }
+}
+
 // ====================================================================================
 // Export all functions for use by other resources
 // ====================================================================================
 
+// Primary exports (ingenium.sql native API)
 global.exports('query', query);
 global.exports('fetchSingle', fetchSingle);
 global.exports('fetchScalar', fetchScalar);
@@ -386,4 +417,13 @@ global.exports('executePrepared', executePrepared);
 global.exports('isReady', isReady);
 global.exports('getStats', getStats);
 
-console.log('^2[ig.sql] Server exports registered^7');
+// ====================================================================================
+// Compatibility exports for oxmysql and mysql-async
+// ====================================================================================
+global.exports('single', fetchSingle);        // oxmysql: single = fetchSingle
+global.exports('scalar', fetchScalar);        // oxmysql: scalar = fetchScalar
+global.exports('prepare', prepareQuery);      // oxmysql: prepare = prepareQuery
+global.exports('execute', execute);           // oxmysql/mysql-async: smart execute function
+global.exports('fetchAll', query);            // mysql-async: fetchAll = query
+
+console.log('^2[ig.sql] Server exports registered (with oxmysql/mysql-async compatibility)^7');

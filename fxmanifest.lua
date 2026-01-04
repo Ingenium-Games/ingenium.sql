@@ -22,6 +22,7 @@ server_scripts {
 
 -- Exports for other resources to use
 exports {
+    -- Primary API
     'query',
     'fetchSingle',
     'fetchScalar',
@@ -32,7 +33,16 @@ exports {
     'prepareQuery',
     'executePrepared',
     'isReady',
-    'getStats'
+    'getStats',
+    
+    -- oxmysql compatibility
+    'single',        -- alias for fetchSingle
+    'scalar',        -- alias for fetchScalar
+    'prepare',       -- alias for prepareQuery
+    'execute',       -- general purpose execute
+    
+    -- mysql-async compatibility
+    'fetchAll'       -- alias for query
 }
 
 -- Provide compatibility with oxmysql and mysql-async
