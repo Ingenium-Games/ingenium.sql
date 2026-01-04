@@ -304,7 +304,9 @@ async function batch(queries, callback) {
  * Helper function to execute a query by routing to appropriate handler based on query type
  */
 async function executeByQueryType(sqlQuery, parameters, callback) {
-    const queryType = sqlQuery.trim().toUpperCase().split(' ')[0];
+    // Extract first SQL keyword more robustly (handles leading whitespace and comments)
+    const match = sqlQuery.match(/^\s*(\w+)/i);
+    const queryType = match ? match[1].toUpperCase() : '';
     
     switch (queryType) {
         case 'SELECT':
@@ -315,7 +317,8 @@ async function executeByQueryType(sqlQuery, parameters, callback) {
         case 'DELETE':
             return await update(sqlQuery, parameters, callback);
         default:
-            // Default to query for safety
+            // Log warning for unknown query types
+            console.warn(`^3[ig.sql WARNING] Unknown query type '${queryType}', defaulting to query handler^7`);
             return await query(sqlQuery, parameters, callback);
     }
 }
