@@ -301,6 +301,29 @@ async function batch(queries, callback) {
 }
 
 /**
+ * Helper function to execute a query by routing to appropriate handler based on query type
+ */
+async function executeByQueryType(sqlQuery, parameters, callback) {
+    // Extract first SQL keyword more robustly (handles leading whitespace and comments)
+    const match = sqlQuery.match(/^\s*(\w+)/i);
+    const queryType = match ? match[1].toUpperCase() : '';
+    
+    switch (queryType) {
+        case 'SELECT':
+            return await query(sqlQuery, parameters, callback);
+        case 'INSERT':
+            return await insert(sqlQuery, parameters, callback);
+        case 'UPDATE':
+        case 'DELETE':
+            return await update(sqlQuery, parameters, callback);
+        default:
+            // Log warning for unknown query types
+            console.warn(`^3[ig.sql WARNING] Unknown query type '${queryType}', defaulting to query handler^7`);
+            return await query(sqlQuery, parameters, callback);
+    }
+}
+
+/**
  * Prepare a query for later execution
  * Returns a query ID that can be used with executePrepared
  */
@@ -325,28 +348,7 @@ async function executePrepared(queryId, parameters, callback) {
         }
 
         const storedQuery = preparedQueries.get(queryId);
-        
-        // Determine query type and execute accordingly
-        const queryType = storedQuery.trim().toUpperCase().split(' ')[0];
-        
-        let result;
-        switch (queryType) {
-            case 'SELECT':
-                result = await query(storedQuery, parameters, callback);
-                break;
-            case 'INSERT':
-                result = await insert(storedQuery, parameters, callback);
-                break;
-            case 'UPDATE':
-            case 'DELETE':
-                result = await update(storedQuery, parameters, callback);
-                break;
-            default:
-                result = await query(storedQuery, parameters, callback);
-                break;
-        }
-
-        return result;
+        return await executeByQueryType(storedQuery, parameters, callback);
     } catch (error) {
         console.error(`^1[ig.sql ERROR] ExecutePrepared failed: ${error.message}^7`);
         if (callback && typeof callback === 'function') {
@@ -370,10 +372,27 @@ function getStats() {
     return global.pool ? global.pool.getStats() : null;
 }
 
+/**
+ * Execute function - compatibility wrapper for oxmysql and mysql-async
+ * Automatically routes to the appropriate function based on query type
+ */
+async function execute(sqlQuery, parameters, callback) {
+    try {
+        return await executeByQueryType(sqlQuery, parameters, callback);
+    } catch (error) {
+        console.error(`^1[ig.sql ERROR] Execute failed: ${error.message}^7`);
+        if (callback && typeof callback === 'function') {
+            callback(null);
+        }
+        return null;
+    }
+}
+
 // ====================================================================================
 // Export all functions for use by other resources
 // ====================================================================================
 
+// Primary exports (ingenium.sql native API)
 global.exports('query', query);
 global.exports('fetchSingle', fetchSingle);
 global.exports('fetchScalar', fetchScalar);
@@ -386,4 +405,13 @@ global.exports('executePrepared', executePrepared);
 global.exports('isReady', isReady);
 global.exports('getStats', getStats);
 
-console.log('^2[ig.sql] Server exports registered^7');
+// ====================================================================================
+// Compatibility exports for oxmysql and mysql-async
+// ====================================================================================
+global.exports('single', fetchSingle);        // oxmysql: single = fetchSingle
+global.exports('scalar', fetchScalar);        // oxmysql: scalar = fetchScalar
+global.exports('prepare', prepareQuery);      // oxmysql: prepare = prepareQuery
+global.exports('execute', execute);           // oxmysql/mysql-async: smart execute function
+global.exports('fetchAll', query);            // mysql-async: fetchAll = query
+
+console.log('^2[ig.sql] Server exports registered (with oxmysql/mysql-async compatibility)^7');
