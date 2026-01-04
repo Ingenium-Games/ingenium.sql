@@ -301,6 +301,26 @@ async function batch(queries, callback) {
 }
 
 /**
+ * Helper function to execute a query by routing to appropriate handler based on query type
+ */
+async function executeByQueryType(sqlQuery, parameters, callback) {
+    const queryType = sqlQuery.trim().toUpperCase().split(' ')[0];
+    
+    switch (queryType) {
+        case 'SELECT':
+            return await query(sqlQuery, parameters, callback);
+        case 'INSERT':
+            return await insert(sqlQuery, parameters, callback);
+        case 'UPDATE':
+        case 'DELETE':
+            return await update(sqlQuery, parameters, callback);
+        default:
+            // Default to query for safety
+            return await query(sqlQuery, parameters, callback);
+    }
+}
+
+/**
  * Prepare a query for later execution
  * Returns a query ID that can be used with executePrepared
  */
@@ -325,28 +345,7 @@ async function executePrepared(queryId, parameters, callback) {
         }
 
         const storedQuery = preparedQueries.get(queryId);
-        
-        // Determine query type and execute accordingly
-        const queryType = storedQuery.trim().toUpperCase().split(' ')[0];
-        
-        let result;
-        switch (queryType) {
-            case 'SELECT':
-                result = await query(storedQuery, parameters, callback);
-                break;
-            case 'INSERT':
-                result = await insert(storedQuery, parameters, callback);
-                break;
-            case 'UPDATE':
-            case 'DELETE':
-                result = await update(storedQuery, parameters, callback);
-                break;
-            default:
-                result = await query(storedQuery, parameters, callback);
-                break;
-        }
-
-        return result;
+        return await executeByQueryType(storedQuery, parameters, callback);
     } catch (error) {
         console.error(`^1[ig.sql ERROR] ExecutePrepared failed: ${error.message}^7`);
         if (callback && typeof callback === 'function') {
@@ -376,21 +375,7 @@ function getStats() {
  */
 async function execute(sqlQuery, parameters, callback) {
     try {
-        const queryType = sqlQuery.trim().toUpperCase().split(' ')[0];
-        
-        // Route to appropriate function based on query type
-        switch (queryType) {
-            case 'SELECT':
-                return await query(sqlQuery, parameters, callback);
-            case 'INSERT':
-                return await insert(sqlQuery, parameters, callback);
-            case 'UPDATE':
-            case 'DELETE':
-                return await update(sqlQuery, parameters, callback);
-            default:
-                // Default to query for safety
-                return await query(sqlQuery, parameters, callback);
-        }
+        return await executeByQueryType(sqlQuery, parameters, callback);
     } catch (error) {
         console.error(`^1[ig.sql ERROR] Execute failed: ${error.message}^7`);
         if (callback && typeof callback === 'function') {
