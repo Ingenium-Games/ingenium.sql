@@ -4,7 +4,6 @@
   "description": "External MySQL connection pool resource for FiveM using mysql2",
   "main": "server.js",
   "scripts": {
-    "install": "npm install"
   },
   "keywords": [
     "fivem",

@@ -158,20 +158,17 @@ class ConnectionPool {
     }
 }
 
-// Create singleton instance
-const pool = new ConnectionPool();
+// Create singleton instance and export to global scope for FiveM
+global.pool = new ConnectionPool();
 
 // Initialize on resource start
 setImmediate(async () => {
-    await pool.initialize();
+    await global.pool.initialize();
 });
 
 // Cleanup on resource stop
 on('onResourceStop', (resourceName) => {
     if (resourceName === GetCurrentResourceName()) {
-        pool.close();
+        global.pool.close();
     }
 });
-
-// Export pool instance for use in other modules (Node.js style)
-module.exports = pool;

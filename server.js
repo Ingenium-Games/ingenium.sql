@@ -6,7 +6,8 @@
  * ====================================================================================
  */
 
-const pool = require('./_pool.js');
+// Reference the pool from global scope (created by _pool.js)
+// In FiveM, server_scripts share the same global scope
 
 // Prepared queries storage
 let preparedQueries = new Map();
@@ -72,12 +73,12 @@ function processParameters(query, parameters) {
  */
 async function query(query, parameters, callback) {
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
         const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await pool.execute(processedQuery, params);
+        const results = await global.pool.execute(processedQuery, params);
 
         if (callback && typeof callback === 'function') {
             callback(results);
@@ -98,12 +99,12 @@ async function query(query, parameters, callback) {
  */
 async function fetchSingle(query, parameters, callback) {
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
         const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await pool.execute(processedQuery, params);
+        const results = await global.pool.execute(processedQuery, params);
 
         const result = results.length > 0 ? results[0] : null;
 
@@ -126,12 +127,12 @@ async function fetchSingle(query, parameters, callback) {
  */
 async function fetchScalar(query, parameters, callback) {
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
         const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await pool.execute(processedQuery, params);
+        const results = await global.pool.execute(processedQuery, params);
 
         let value = null;
         if (results.length > 0) {
@@ -160,12 +161,12 @@ async function fetchScalar(query, parameters, callback) {
  */
 async function insert(query, parameters, callback) {
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
         const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await pool.execute(processedQuery, params);
+        const results = await global.pool.execute(processedQuery, params);
 
         // For INSERT queries, mysql2 returns an object with insertId
         const insertId = results.insertId || 0;
@@ -189,12 +190,12 @@ async function insert(query, parameters, callback) {
  */
 async function update(query, parameters, callback) {
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
         const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await pool.execute(processedQuery, params);
+        const results = await global.pool.execute(processedQuery, params);
 
         // For UPDATE/DELETE queries, mysql2 returns an object with affectedRows
         const affectedRows = results.affectedRows || 0;
@@ -220,11 +221,11 @@ async function transaction(queries, callback) {
     let connection = null;
     
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
-        connection = await pool.getConnection();
+        connection = await global.pool.getConnection();
         await connection.beginTransaction();
 
         const results = [];
@@ -269,7 +270,7 @@ async function transaction(queries, callback) {
  */
 async function batch(queries, callback) {
     try {
-        if (!pool || !pool.ready()) {
+        if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
 
@@ -281,7 +282,7 @@ async function batch(queries, callback) {
                 queryData.parameters || queryData[1] || []
             );
 
-            const result = await pool.execute(processedQuery, params);
+            const result = await global.pool.execute(processedQuery, params);
             results.push(result);
         }
 
@@ -359,14 +360,14 @@ async function executePrepared(queryId, parameters, callback) {
  * Check if connection pool is ready
  */
 function isReady() {
-    return pool ? pool.ready() : false;
+    return global.pool ? global.pool.ready() : false;
 }
 
 /**
  * Get pool statistics
  */
 function getStats() {
-    return pool ? pool.getStats() : null;
+    return global.pool ? global.pool.getStats() : null;
 }
 
 // ====================================================================================
