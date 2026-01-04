@@ -63,7 +63,7 @@ class ConnectionPool {
             this.isReady = true;
             
             // Emit ready event
-            emit('ig:sql:ready');
+            emit('ingenium.sql:Ready');
             
             return true;
         } catch (error) {
@@ -102,7 +102,7 @@ class ConnectionPool {
             if (duration > 150) {
                 this.stats.slowQueries++;
                 console.log(`^3[SQL WARNING] Slow query (${duration.toFixed(2)}ms): ${query.substring(0, 100)}...^7`);
-                emit('ig:sql:slowQuery', { query, duration, parameters });
+                emit('ingenium.sql:SlowQuery', { query, duration, parameters });
             }
             
             emit('ig:sql:queryExecuted', { query, duration, success: true });

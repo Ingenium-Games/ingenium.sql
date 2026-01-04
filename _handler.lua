@@ -184,12 +184,12 @@ end)
 -- ====================================================================================--
 
 -- SQL ready event
-AddEventHandler('ig:sql:ready', function()
+AddEventHandler('ingenium.sql:Ready', function()
     print("^2[SQL Handler] Database connection established^7")
 end)
 
 -- Slow query logging
-AddEventHandler('ig:sql:slowQuery', function(data)
+AddEventHandler('ingenium.sql:SlowQuery', function(data)
     print(string.format("^3[SQL WARNING] Slow query detected: %.2fms^7", data.duration))
     if conf and conf.debug then
         print(string.format("^3[SQL] Query: %s^7", data.query))
