@@ -4,7 +4,7 @@ External MySQL connection pool resource for FiveM using mysql2.
 
 ## Overview
 
-`ingenium.sql` (resource name: `ig.sql`) is a standalone FiveM resource that provides MySQL database connectivity for the Ingenium framework. It replaces the previously internalized mysql2 implementation that had timeout issues, offering a robust, external SQL connector.
+`ingenium.sql` is a standalone FiveM resource that provides MySQL database connectivity for the Ingenium framework. The resource folder should be named `ingenium.sql` and other resources should reference it as `exports['ingenium.sql']` when importing functionality. It replaces the previously internalized mysql2 implementation that had timeout issues, offering a robust, external SQL connector.
 
 ## Features
 
@@ -20,10 +20,10 @@ External MySQL connection pool resource for FiveM using mysql2.
 ## Installation
 
 1. Clone or download this repository to your FiveM `resources` folder
-2. Rename the folder to `ig.sql` (if not already named)
+2. Ensure the folder is named `ingenium.sql`
 3. Install Node.js dependencies:
    ```bash
-   cd resources/ig.sql
+   cd resources/ingenium.sql
    npm install
    ```
 4. Configure your MySQL connection in `server.cfg`:
@@ -44,7 +44,7 @@ External MySQL connection pool resource for FiveM using mysql2.
    ```
 5. Add to your `server.cfg`:
    ```cfg
-   ensure ig.sql
+   ensure ingenium.sql
    ```
 
 ## Usage
@@ -53,66 +53,66 @@ External MySQL connection pool resource for FiveM using mysql2.
 
 ```lua
 -- Query - Get multiple rows
-local users = exports['ig.sql']:query('SELECT * FROM users WHERE age > ?', {18})
+local users = exports['ingenium.sql']:query('SELECT * FROM users WHERE age > ?', {18})
 
 -- FetchSingle - Get one row
-local user = exports['ig.sql']:fetchSingle('SELECT * FROM users WHERE id = ?', {userId})
+local user = exports['ingenium.sql']:fetchSingle('SELECT * FROM users WHERE id = ?', {userId})
 
 -- FetchScalar - Get single value
-local count = exports['ig.sql']:fetchScalar('SELECT COUNT(*) FROM users WHERE active = ?', {1})
+local count = exports['ingenium.sql']:fetchScalar('SELECT COUNT(*) FROM users WHERE active = ?', {1})
 
 -- Insert - Returns insert ID
-local insertId = exports['ig.sql']:insert('INSERT INTO users (name, age) VALUES (?, ?)', {'John', 25})
+local insertId = exports['ingenium.sql']:insert('INSERT INTO users (name, age) VALUES (?, ?)', {'John', 25})
 
 -- Update - Returns affected rows
-local affected = exports['ig.sql']:update('UPDATE users SET age = ? WHERE id = ?', {26, userId})
+local affected = exports['ingenium.sql']:update('UPDATE users SET age = ? WHERE id = ?', {26, userId})
 
 -- Transaction - Multiple queries atomically
-local result = exports['ig.sql']:transaction({
+local result = exports['ingenium.sql']:transaction({
     {query = 'UPDATE accounts SET balance = balance - ? WHERE id = ?', parameters = {100, fromAccount}},
     {query = 'UPDATE accounts SET balance = balance + ? WHERE id = ?', parameters = {100, toAccount}}
 })
 
 -- Batch - Multiple queries without transaction
-local results = exports['ig.sql']:batch({
+local results = exports['ingenium.sql']:batch({
     {query = 'SELECT * FROM users WHERE id = ?', parameters = {1}},
     {query = 'SELECT * FROM accounts WHERE user_id = ?', parameters = {1}}
 })
 
 -- Named Parameters
-local user = exports['ig.sql']:fetchSingle(
+local user = exports['ingenium.sql']:fetchSingle(
     'SELECT * FROM users WHERE name = @name AND age > @age',
     {name = 'John', age = 18}
 )
 
 -- Prepared Statements
-local queryId = exports['ig.sql']:prepareQuery('SELECT * FROM users WHERE id = ?')
-local user = exports['ig.sql']:executePrepared(queryId, {userId})
+local queryId = exports['ingenium.sql']:prepareQuery('SELECT * FROM users WHERE id = ?')
+local user = exports['ingenium.sql']:executePrepared(queryId, {userId})
 
 -- Check Connection Status
-if exports['ig.sql']:isReady() then
+if exports['ingenium.sql']:isReady() then
     print('Database is ready')
 end
 
 -- Get Statistics
-local stats = exports['ig.sql']:getStats()
+local stats = exports['ingenium.sql']:getStats()
 print(json.encode(stats))
 ```
 
-### From Ingenium Core (c.sql namespace)
+### From Ingenium Core (ig.sql namespace)
 
-If you're using this with the ingenium framework, the `_handler.lua` wrapper provides convenient access through the `c.sql` namespace:
+If you're using this with the ingenium framework, the `_handler.lua` wrapper provides convenient access through the `ig.sql` namespace:
 
 ```lua
 -- These functions are available automatically in ingenium resources
-local users = c.sql.Query('SELECT * FROM users WHERE age > ?', {18})
-local user = c.sql.FetchSingle('SELECT * FROM users WHERE id = ?', {userId})
-local count = c.sql.FetchScalar('SELECT COUNT(*) FROM users')
-local insertId = c.sql.Insert('INSERT INTO users (name) VALUES (?)', {'John'})
-local affected = c.sql.Update('UPDATE users SET age = ? WHERE id = ?', {26, userId})
+local users = ig.sql.Query('SELECT * FROM users WHERE age > ?', {18})
+local user = ig.sql.FetchSingle('SELECT * FROM users WHERE id = ?', {userId})
+local count = ig.sql.FetchScalar('SELECT COUNT(*) FROM users')
+local insertId = ig.sql.Insert('INSERT INTO users (name) VALUES (?)', {'John'})
+local affected = ig.sql.Update('UPDATE users SET age = ? WHERE id = ?', {26, userId})
 
 -- With callbacks
-c.sql.Query('SELECT * FROM users', {}, function(results)
+ig.sql.Query('SELECT * FROM users', {}, function(results)
     for _, user in ipairs(results) do
         print(user.name)
     end
@@ -257,8 +257,9 @@ Ensure:
 
 While inspired by oxmysql, this resource is tailored for the ingenium framework:
 
-- Resource name is `ig.sql` instead of `oxmysql`
-- Includes `_handler.lua` for `c.sql` namespace integration
+- Resource name is `ingenium.sql` instead of `oxmysql`
+- Includes `_handler.lua` for `ig.sql` namespace integration with ingenium core
+- Provides compatibility with oxmysql and mysql-async via `provide` directives
 - Simplified export structure
 - Custom initialization events
 - Adapted for ingenium resource patterns
@@ -289,9 +290,11 @@ Download from [MariaDB.org](https://mariadb.org/download/)
 ```sql
 CREATE DATABASE fivem CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'fivem'@'localhost' IDENTIFIED BY 'yourpassword';
-GRANT ALL PRIVILEGES ON fivem.* TO 'fivem'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON fivem.* TO 'fivem'@'localhost';
 FLUSH PRIVILEGES;
 ```
+
+**Note:** The FiveM database user only requires SELECT, INSERT, UPDATE, and DELETE privileges for normal operation. Database schema updates and migrations should be run by a higher-privileged account separately, keeping the connection handler's scope limited for security.
 
 ## Support
 

@@ -35,5 +35,10 @@ exports {
     'getStats'
 }
 
+-- Provide compatibility with oxmysql and mysql-async
+-- This allows resources expecting oxmysql or mysql-async to use this resource
+provide 'oxmysql'
+provide 'mysql-async'
+
 -- Lua 5.4
 lua54 'yes'
