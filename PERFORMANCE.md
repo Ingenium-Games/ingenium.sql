@@ -39,24 +39,26 @@ function getCachedRegex(paramName) {
 
 **Problem**: Query type (SELECT, INSERT, UPDATE, DELETE) was detected using regex matching on every `execute()` call, even for repeated query patterns.
 
-**Solution**: Implemented a query type cache with size limits:
-- Cache stores the detected query type for up to 100 unique queries
+**Solution**: Implemented a query type cache with normalized query keys:
+- Cache stores the detected query type for up to 1,000 unique query patterns
+- Uses first 100 characters as cache key to handle queries with different parameter values
 - Eliminates repeated regex operations for common queries
 - Size limit prevents unbounded memory growth
 
 **Impact**:
 - Immediate return for cached queries (no regex matching)
 - Particularly beneficial for applications with repeated query patterns
-- Negligible memory overhead (~5KB for 100 entries)
+- Memory-efficient caching strategy (~50KB for 1,000 entries)
 
 ```javascript
 // Before: Regex match on every call
 const match = sqlQuery.match(/^\s*(\w+)/i);
 const queryType = match ? match[1].toUpperCase() : '';
 
-// After: Check cache first
-if (queryTypeCache.has(sqlQuery)) {
-    return queryTypeCache.get(sqlQuery);
+// After: Check cache first with normalized key
+const cacheKey = normalizeQueryForCache(sqlQuery);
+if (queryTypeCache.has(cacheKey)) {
+    return queryTypeCache.get(cacheKey);
 }
 ```
 
@@ -64,14 +66,15 @@ if (queryTypeCache.has(sqlQuery)) {
 
 **Problem**: Average query time was recalculated on every `getStats()` call by dividing total time by total queries.
 
-**Solution**: Calculate average incrementally using the formula:
+**Solution**: Calculate average incrementally using Welford's online algorithm:
 ```
-avg_new = avg_old + (value - avg_old) / count
+delta = value - avg_old
+avg_new = avg_old + delta / count
 ```
 
 **Impact**:
-- O(1) instead of O(1) with division operation on every stats request
-- More numerically stable for large query counts
+- O(1) operation with no division on stats retrieval
+- Numerically stable for large query counts (prevents floating-point precision loss)
 - Stats can be retrieved with zero computational overhead
 
 ```javascript
@@ -82,9 +85,9 @@ getStats() {
     return { ...this.stats, averageTime: avgTime };
 }
 
-// After: Maintain incrementally
-this.stats.averageTime = this.stats.averageTime + 
-    (duration - this.stats.averageTime) / this.stats.totalQueries;
+// After: Maintain incrementally with Welford's algorithm
+const delta = duration - this.stats.averageTime;
+this.stats.averageTime = this.stats.averageTime + delta / this.stats.totalQueries;
 ```
 
 ### 4. Exponential Backoff in AwaitReady (_handler.lua)
@@ -175,10 +178,10 @@ if (query.indexOf('@') === -1) {
 All optimizations are designed to be memory-efficient:
 
 - **Regex cache**: Unbounded but limited by unique parameter names in application (typically <100 entries)
-- **Query type cache**: Hard-limited to 100 entries (~5KB)
+- **Query type cache**: Hard-limited to 1,000 entries (~50KB) with normalized keys
 - **Stats structure**: Fixed size (5 numbers)
 
-Total additional memory overhead: < 50KB in typical usage
+Total additional memory overhead: < 100KB in typical usage
 
 ## Recommendations for Users
 

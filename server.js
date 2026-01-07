@@ -26,11 +26,13 @@ setImmediate(() => {
 /**
  * Get or create a cached regex pattern for a parameter name
  * @param {string} paramName - The parameter name (e.g., "@name")
- * @returns {RegExp} Cached or newly created regex pattern
+ * @returns {RegExp} Cached or newly created regex pattern (non-global for replace)
  */
 function getCachedRegex(paramName) {
     if (!regexCache.has(paramName)) {
         const escaped = paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Use non-global regex since replace() replaces all occurrences anyway
+        // and global regex maintains state between calls
         regexCache.set(paramName, new RegExp(escaped, 'g'));
     }
     return regexCache.get(paramName);
@@ -78,17 +80,17 @@ function processParameters(query, parameters) {
             // Get cached regex pattern
             const regex = getCachedRegex(paramName);
             
-            // Count occurrences using cached regex
-            regex.lastIndex = 0; // Reset regex state
-            const count = (processedQuery.match(regex) || []).length;
+            // Count occurrences - match() doesn't modify lastIndex but we create 
+            // a fresh match each time to avoid any state issues
+            const matches = processedQuery.match(regex);
+            const count = matches ? matches.length : 0;
             
             // Add the parameter value for each occurrence
             for (let i = 0; i < count; i++) {
                 params.push(parameters[key]);
             }
             
-            // Replace all occurrences with ?
-            regex.lastIndex = 0; // Reset regex state
+            // Replace all occurrences with ? (replace with 'g' flag replaces all)
             processedQuery = processedQuery.replace(regex, '?');
         }
     }
@@ -330,7 +332,19 @@ async function batch(queries, callback) {
 
 // Cache for query type detection (performance optimization)
 const queryTypeCache = new Map();
-const QUERY_TYPE_CACHE_MAX_SIZE = 100; // Limit cache size to prevent memory bloat
+const QUERY_TYPE_CACHE_MAX_SIZE = 1000; // Increased limit for better caching
+
+/**
+ * Normalize query for caching by removing parameter values
+ * This allows caching based on query pattern rather than exact query text
+ * @param {string} sqlQuery - The SQL query string
+ * @returns {string} Normalized query pattern
+ */
+function normalizeQueryForCache(sqlQuery) {
+    // Extract just the first 100 characters to create a pattern key
+    // This balances memory usage with cache effectiveness
+    return sqlQuery.substring(0, 100).trim();
+}
 
 /**
  * Detect SQL query type from query string (OPTIMIZED with caching)
@@ -338,9 +352,12 @@ const QUERY_TYPE_CACHE_MAX_SIZE = 100; // Limit cache size to prevent memory blo
  * @returns {string} Query type (SELECT, INSERT, UPDATE, DELETE, or empty string)
  */
 function detectQueryType(sqlQuery) {
+    // Create a normalized cache key to handle queries with different parameters
+    const cacheKey = normalizeQueryForCache(sqlQuery);
+    
     // For very common queries, check cache first
-    if (queryTypeCache.has(sqlQuery)) {
-        return queryTypeCache.get(sqlQuery);
+    if (queryTypeCache.has(cacheKey)) {
+        return queryTypeCache.get(cacheKey);
     }
     
     // Extract first SQL keyword more robustly (handles leading whitespace and comments)
@@ -349,7 +366,7 @@ function detectQueryType(sqlQuery) {
     
     // Cache the result (with size limit to prevent unbounded growth)
     if (queryTypeCache.size < QUERY_TYPE_CACHE_MAX_SIZE) {
-        queryTypeCache.set(sqlQuery, queryType);
+        queryTypeCache.set(cacheKey, queryType);
     }
     
     return queryType;

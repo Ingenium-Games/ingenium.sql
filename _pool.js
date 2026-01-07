@@ -10,7 +10,6 @@ class ConnectionPool {
     constructor() {
         this.pool = null;
         this.isReady = false;
-        this.preparedStatementCache = new Map(); // Cache for prepared statements
         this.config = {
             host: GetConvar('mysql_connection_string', '').match(/mysql:\/\/([^:]+)/)?.[1] || 
                   GetConvar('mysql_host', 'localhost'),
@@ -103,9 +102,11 @@ class ConnectionPool {
             // Update stats incrementally (OPTIMIZED)
             this.stats.totalQueries++;
             this.stats.totalTime += duration;
-            // Incremental average: avg = avg + (new_value - avg) / count
-            this.stats.averageTime = this.stats.averageTime + 
-                (duration - this.stats.averageTime) / this.stats.totalQueries;
+            
+            // Use Welford's online algorithm for numerically stable incremental average
+            // This prevents precision loss with large query counts
+            const delta = duration - this.stats.averageTime;
+            this.stats.averageTime = this.stats.averageTime + delta / this.stats.totalQueries;
             
             if (duration > 150) {
                 this.stats.slowQueries++;
