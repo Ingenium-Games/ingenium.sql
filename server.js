@@ -13,6 +13,9 @@
 let preparedQueries = new Map();
 let queryIdCounter = 0;
 
+// Cache for compiled regex patterns (performance optimization)
+const regexCache = new Map();
+
 /**
  * Initialize message
  */
@@ -21,7 +24,20 @@ setImmediate(() => {
 });
 
 /**
- * Helper function to process parameters
+ * Get or create a cached regex pattern for a parameter name
+ * @param {string} paramName - The parameter name (e.g., "@name")
+ * @returns {RegExp} Cached or newly created regex pattern
+ */
+function getCachedRegex(paramName) {
+    if (!regexCache.has(paramName)) {
+        const escaped = paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        regexCache.set(paramName, new RegExp(escaped, 'g'));
+    }
+    return regexCache.get(paramName);
+}
+
+/**
+ * Helper function to process parameters (OPTIMIZED)
  * Converts named parameters (@param) to positional (?) and returns array
  */
 function processParameters(query, parameters) {
@@ -34,6 +50,11 @@ function processParameters(query, parameters) {
         return { query, params: parameters };
     }
 
+    // Quick check: if no @ symbol, return early
+    if (query.indexOf('@') === -1) {
+        return { query, params: [] };
+    }
+
     // Convert named parameters to positional
     const params = [];
     let processedQuery = query;
@@ -41,28 +62,35 @@ function processParameters(query, parameters) {
     // Find all unique @paramName in query and replace with ?
     const paramNames = query.match(/@\w+/g);
     if (paramNames) {
-        // Process each unique parameter name
-        const processedParams = new Set();
+        // Use a Set to track unique parameter names for efficiency
+        const seen = new Set();
         
-        paramNames.forEach(paramName => {
+        for (const paramName of paramNames) {
+            // Skip if already processed
+            if (seen.has(paramName)) continue;
+            seen.add(paramName);
+            
             const key = paramName.substring(1); // Remove @
             
-            // Only process each parameter name once
-            if (!processedParams.has(paramName) && parameters.hasOwnProperty(key)) {
-                // Replace all occurrences of this parameter
-                const regex = new RegExp(paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                const count = (processedQuery.match(regex) || []).length;
-                
-                // Add the parameter value for each occurrence
-                for (let i = 0; i < count; i++) {
-                    params.push(parameters[key]);
-                }
-                
-                // Replace all occurrences with ?
-                processedQuery = processedQuery.replace(regex, '?');
-                processedParams.add(paramName);
+            // Skip if parameter value not provided
+            if (!parameters.hasOwnProperty(key)) continue;
+            
+            // Get cached regex pattern
+            const regex = getCachedRegex(paramName);
+            
+            // Count occurrences using cached regex
+            regex.lastIndex = 0; // Reset regex state
+            const count = (processedQuery.match(regex) || []).length;
+            
+            // Add the parameter value for each occurrence
+            for (let i = 0; i < count; i++) {
+                params.push(parameters[key]);
             }
-        });
+            
+            // Replace all occurrences with ?
+            regex.lastIndex = 0; // Reset regex state
+            processedQuery = processedQuery.replace(regex, '?');
+        }
     }
 
     return { query: processedQuery, params };
@@ -300,13 +328,38 @@ async function batch(queries, callback) {
     }
 }
 
+// Cache for query type detection (performance optimization)
+const queryTypeCache = new Map();
+const QUERY_TYPE_CACHE_MAX_SIZE = 100; // Limit cache size to prevent memory bloat
+
 /**
- * Helper function to execute a query by routing to appropriate handler based on query type
+ * Detect SQL query type from query string (OPTIMIZED with caching)
+ * @param {string} sqlQuery - The SQL query string
+ * @returns {string} Query type (SELECT, INSERT, UPDATE, DELETE, or empty string)
  */
-async function executeByQueryType(sqlQuery, parameters, callback) {
+function detectQueryType(sqlQuery) {
+    // For very common queries, check cache first
+    if (queryTypeCache.has(sqlQuery)) {
+        return queryTypeCache.get(sqlQuery);
+    }
+    
     // Extract first SQL keyword more robustly (handles leading whitespace and comments)
     const match = sqlQuery.match(/^\s*(\w+)/i);
     const queryType = match ? match[1].toUpperCase() : '';
+    
+    // Cache the result (with size limit to prevent unbounded growth)
+    if (queryTypeCache.size < QUERY_TYPE_CACHE_MAX_SIZE) {
+        queryTypeCache.set(sqlQuery, queryType);
+    }
+    
+    return queryType;
+}
+
+/**
+ * Helper function to execute a query by routing to appropriate handler based on query type (OPTIMIZED)
+ */
+async function executeByQueryType(sqlQuery, parameters, callback) {
+    const queryType = detectQueryType(sqlQuery);
     
     switch (queryType) {
         case 'SELECT':

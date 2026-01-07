@@ -10,6 +10,7 @@ class ConnectionPool {
     constructor() {
         this.pool = null;
         this.isReady = false;
+        this.preparedStatementCache = new Map(); // Cache for prepared statements
         this.config = {
             host: GetConvar('mysql_connection_string', '').match(/mysql:\/\/([^:]+)/)?.[1] || 
                   GetConvar('mysql_host', 'localhost'),
@@ -33,7 +34,8 @@ class ConnectionPool {
             totalQueries: 0,
             slowQueries: 0,
             failedQueries: 0,
-            totalTime: 0
+            totalTime: 0,
+            averageTime: 0  // Maintain incrementally for performance
         };
     }
 
@@ -85,19 +87,25 @@ class ConnectionPool {
     }
 
     /**
-     * Execute a raw query
+     * Execute a raw query (OPTIMIZED with incremental stats)
      */
     async execute(query, parameters = []) {
         const startTime = process.hrtime.bigint();
         
         try {
+            // Use execute which leverages mysql2's internal prepared statement cache
+            // mysql2 automatically caches prepared statements for better performance
             const [results] = await this.pool.execute(query, parameters);
             
             const endTime = process.hrtime.bigint();
             const duration = Number(endTime - startTime) / 1000000; // Convert to milliseconds
             
+            // Update stats incrementally (OPTIMIZED)
             this.stats.totalQueries++;
             this.stats.totalTime += duration;
+            // Incremental average: avg = avg + (new_value - avg) / count
+            this.stats.averageTime = this.stats.averageTime + 
+                (duration - this.stats.averageTime) / this.stats.totalQueries;
             
             if (duration > 150) {
                 this.stats.slowQueries++;
@@ -121,14 +129,12 @@ class ConnectionPool {
     }
 
     /**
-     * Get pool statistics
+     * Get pool statistics (OPTIMIZED - no recalculation needed)
      */
     getStats() {
-        const avgTime = this.stats.totalQueries > 0 ? this.stats.totalTime / this.stats.totalQueries : 0;
-        
         return {
             ...this.stats,
-            averageTime: avgTime,
+            // averageTime is now maintained incrementally
             isReady: this.isReady,
             config: {
                 host: this.config.host,

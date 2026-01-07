@@ -142,17 +142,24 @@ function ig.sql.IsReady()
     return exports['ingenium.sql']:isReady()
 end
 
---- Wait for SQL connection to be ready
+--- Wait for SQL connection to be ready (OPTIMIZED with exponential backoff)
 ---@param timeout number|nil Timeout in milliseconds (default 30000)
 ---@return boolean True if ready, false if timeout
 function ig.sql.AwaitReady(timeout)
     local maxWait = timeout or 30000
     local waited = 0
-    local interval = 100
+    local interval = 50  -- Start with shorter interval
+    local maxInterval = 500  -- Cap the maximum wait interval
     
     while not ig.sql.IsReady() and waited < maxWait do
         Citizen.Wait(interval)
         waited = waited + interval
+        
+        -- Exponential backoff: double the interval up to maxInterval
+        -- This reduces CPU usage while still being responsive initially
+        if interval < maxInterval then
+            interval = math.min(interval * 2, maxInterval)
+        end
     end
     
     return ig.sql.IsReady()
