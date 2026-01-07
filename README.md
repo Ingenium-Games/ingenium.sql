@@ -247,11 +247,52 @@ Ensure:
 ## Performance Tips
 
 1. **Use Prepared Statements** for repeated queries
+   - The resource automatically caches query type detection for better performance
+   - mysql2 internally caches prepared statements for faster execution
+   
 2. **Batch Multiple Reads** instead of individual queries
+   - Use the `batch()` function to execute multiple queries efficiently
+   - Reduces network round-trips and connection overhead
+   
 3. **Use Transactions** for multiple writes
+   - Ensures atomicity and improves performance for related operations
+   - Single connection is used for all queries in the transaction
+   
 4. **Add Database Indexes** on frequently queried columns
+   - Dramatically improves SELECT query performance
+   - Check slow query logs to identify which columns need indexing
+   
 5. **Increase Connection Limit** for high-traffic servers
+   - Default is 10 concurrent connections
+   - Adjust `mysql_connection_limit` based on your server load
+   - Monitor connection pool usage with `getStats()`
+   
 6. **Monitor Stats** regularly to identify bottlenecks
+   - Use `exports['ingenium.sql']:getStats()` to get performance metrics
+   - Watch for slow queries (>150ms) and optimize them
+   - Track average query time and failed queries
+
+7. **Optimize Parameter Usage**
+   - Named parameters (@param) are automatically cached for efficiency
+   - Use positional parameters (?) for slightly better performance
+   - Avoid excessive parameter substitutions in a single query
+
+8. **Query Caching Considerations**
+   - The resource caches up to 100 unique query type detections
+   - Regex patterns for named parameters are cached indefinitely
+   - This improves performance for repeated query patterns
+
+## Performance Optimizations (v1.0.0+)
+
+This resource includes several performance optimizations:
+
+- **Cached Regex Patterns**: Named parameter regex patterns are compiled once and reused
+- **Query Type Caching**: Query type detection results are cached for repeated queries
+- **Incremental Statistics**: Average query time is calculated incrementally, not on every request
+- **Exponential Backoff**: Lua's AwaitReady function uses exponential backoff to reduce CPU usage
+- **mysql2 Prepared Statements**: Automatically leverages mysql2's internal prepared statement cache
+- **Early Exit Optimization**: Parameter processing exits early when no named parameters are present
+
 
 ## Differences from oxmysql
 
