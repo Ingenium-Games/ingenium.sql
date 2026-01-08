@@ -7,9 +7,9 @@ fx_version 'cerulean'
 game 'common'
 
 name 'ingenium.sql'
-description 'External MySQL connection pool resource using mysql2'
+description 'External MySQL connection pool resource using mysql2 - Performance optimized'
 author 'Ingenium Games'
-version '1.0.0'
+version '1.0.1'
 
 -- Server-side files
 server_scripts {
