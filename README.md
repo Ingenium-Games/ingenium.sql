@@ -1,6 +1,7 @@
 # ingenium.sql
 
 External MySQL connection pool resource for FiveM using mysql2.
+https://ingenium-games.gitbook.io/ingenium.sql/
 
 ## Overview
 
