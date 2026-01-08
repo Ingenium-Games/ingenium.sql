@@ -435,65 +435,60 @@ ig.sql.Query('SELECT * FROM users', {}, function(results)
 end)
 ```
 
-## API Reference
+## API Documentation
 
-### Core Query Functions
+For detailed documentation on each export, please refer to the [Wiki Documentation](Documentation/wiki/).
 
-#### `query(query, parameters, callback)`
-Execute a SELECT query returning multiple rows.
-- **Parameters**: 
-  - `query` (string): SQL query with `?` or `@named` parameters
-  - `parameters` (table/array): Query parameters
-  - `callback` (function, optional): Callback function(results)
-- **Returns**: Array of result rows
+### Available Exports
 
-#### `fetchSingle(query, parameters, callback)`
-Execute a SELECT query returning a single row.
-- **Returns**: Single row object or `nil`
+#### Core Query Functions
+The following exports provide the primary database functionality:
 
-#### `fetchScalar(query, parameters, callback)`
-Execute a SELECT query returning a single value.
-- **Returns**: Single scalar value
+- **[query](Documentation/wiki/query.md)** - Execute SELECT queries returning multiple rows
+- **[fetchSingle](Documentation/wiki/fetchSingle.md)** - Execute SELECT query returning a single row
+- **[fetchScalar](Documentation/wiki/fetchScalar.md)** - Execute SELECT query returning a single value
+- **[insert](Documentation/wiki/insert.md)** - Execute INSERT queries and return the insert ID
+- **[update](Documentation/wiki/update.md)** - Execute UPDATE or DELETE queries and return affected rows
+- **[transaction](Documentation/wiki/transaction.md)** - Execute multiple queries atomically
+- **[batch](Documentation/wiki/batch.md)** - Execute multiple queries efficiently without transaction
 
-#### `insert(query, parameters, callback)`
-Execute an INSERT query.
-- **Returns**: Insert ID (number)
+#### Prepared Statements
+For improved performance with repeated queries:
 
-#### `update(query, parameters, callback)`
-Execute an UPDATE or DELETE query.
-- **Returns**: Number of affected rows
+- **[prepareQuery](Documentation/wiki/prepareQuery.md)** - Prepare a query for later execution
+- **[executePrepared](Documentation/wiki/executePrepared.md)** - Execute a prepared query
 
-#### `transaction(queries, callback)`
-Execute multiple queries in a transaction.
-- **Parameters**:
-  - `queries` (array): Array of `{query, parameters}` objects
-  - `callback` (function, optional): Callback function(success, results)
-- **Returns**: `{success: boolean, results: array}`
+#### Utility Functions
+Helper functions for connection management and monitoring:
 
-#### `batch(queries, callback)`
-Execute multiple queries without transaction.
-- **Parameters**: Same as transaction
-- **Returns**: Array of results
+- **[isReady](Documentation/wiki/isReady.md)** - Check if the connection pool is ready
+- **[getStats](Documentation/wiki/getStats.md)** - Get performance statistics
 
-### Prepared Statements
+#### Compatibility Aliases
+For compatibility with oxmysql and mysql-async:
 
-#### `prepareQuery(query)`
-Prepare a query for later execution.
-- **Returns**: Query ID (string)
+- **[single](Documentation/wiki/single.md)** - Alias for `fetchSingle`
+- **[scalar](Documentation/wiki/scalar.md)** - Alias for `fetchScalar`
+- **[prepare](Documentation/wiki/prepare.md)** - Alias for `prepareQuery`
+- **[execute](Documentation/wiki/execute.md)** - Smart router for query type detection
+- **[fetchAll](Documentation/wiki/fetchAll.md)** - Alias for `query`
 
-#### `executePrepared(queryId, parameters, callback)`
-Execute a prepared query.
-- **Returns**: Result based on query type
+### Quick Reference
 
-### Utility Functions
+```lua
+-- Basic usage
+local users = exports['ingenium.sql']:query('SELECT * FROM users WHERE age > ?', {18})
+local user = exports['ingenium.sql']:fetchSingle('SELECT * FROM users WHERE id = ?', {userId})
+local count = exports['ingenium.sql']:fetchScalar('SELECT COUNT(*) FROM users')
+local insertId = exports['ingenium.sql']:insert('INSERT INTO users (name) VALUES (?)', {'John'})
+local affected = exports['ingenium.sql']:update('UPDATE users SET name = ? WHERE id = ?', {'Jane', userId})
 
-#### `isReady()`
-Check if the connection pool is ready.
-- **Returns**: Boolean
+-- Ingenium framework integration (ig.sql namespace)
+local users = ig.sql.Query('SELECT * FROM users WHERE age > ?', {18})
+local user = ig.sql.FetchSingle('SELECT * FROM users WHERE id = ?', {userId})
+```
 
-#### `getStats()`
-Get performance statistics.
-- **Returns**: Statistics object
+See the usage examples earlier in this README and the [Wiki Documentation](Documentation/wiki/) for detailed information on each function.
 
 ## Architecture
 
