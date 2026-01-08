@@ -6,6 +6,14 @@ External MySQL connection pool resource for FiveM using mysql2.
 
 `ingenium.sql` is a standalone FiveM resource that provides MySQL database connectivity for the Ingenium framework. The resource folder should be named `ingenium.sql` and other resources should reference it as `exports['ingenium.sql']` when importing functionality.
 
+## ⚠️ Important Notice
+
+**This repository is actively maintained and open to community contributions.**
+
+When reporting issues, **you MUST use the provided issue template**. Issues that do not follow the template will be automatically closed without review. This helps us help you more efficiently.
+
+**📝 [Report a Bug](https://github.com/Ingenium-Games/ingenium.sql/issues/new/choose)** | **📖 [Installation Guide](INSTALLATION.md)** | **🤝 [Contributing Guide](CONTRIBUTING.md)**
+
 ## Features
 
 - **Connection Pooling**: Efficient connection management using mysql2's built-in pooling
@@ -49,54 +57,348 @@ External MySQL connection pool resource for FiveM using mysql2.
 
 ## Usage
 
-### From Lua (Other Resources)
+### Quick Start Example
+
+Here's a simple example to get you started:
 
 ```lua
--- Query - Get multiple rows
-local users = exports['ingenium.sql']:query('SELECT * FROM users WHERE age > ?', {18})
-
--- FetchSingle - Get one row
-local user = exports['ingenium.sql']:fetchSingle('SELECT * FROM users WHERE id = ?', {userId})
-
--- FetchScalar - Get single value
-local count = exports['ingenium.sql']:fetchScalar('SELECT COUNT(*) FROM users WHERE active = ?', {1})
-
--- Insert - Returns insert ID
-local insertId = exports['ingenium.sql']:insert('INSERT INTO users (name, age) VALUES (?, ?)', {'John', 25})
-
--- Update - Returns affected rows
-local affected = exports['ingenium.sql']:update('UPDATE users SET age = ? WHERE id = ?', {26, userId})
-
--- Transaction - Multiple queries atomically
-local result = exports['ingenium.sql']:transaction({
-    {query = 'UPDATE accounts SET balance = balance - ? WHERE id = ?', parameters = {100, fromAccount}},
-    {query = 'UPDATE accounts SET balance = balance + ? WHERE id = ?', parameters = {100, toAccount}}
-})
-
--- Batch - Multiple queries without transaction
-local results = exports['ingenium.sql']:batch({
-    {query = 'SELECT * FROM users WHERE id = ?', parameters = {1}},
-    {query = 'SELECT * FROM accounts WHERE user_id = ?', parameters = {1}}
-})
-
--- Named Parameters
-local user = exports['ingenium.sql']:fetchSingle(
-    'SELECT * FROM users WHERE name = @name AND age > @age',
-    {name = 'John', age = 18}
-)
-
--- Prepared Statements
-local queryId = exports['ingenium.sql']:prepareQuery('SELECT * FROM users WHERE id = ?')
-local user = exports['ingenium.sql']:executePrepared(queryId, {userId})
-
--- Check Connection Status
+-- Check if database is ready before using it
 if exports['ingenium.sql']:isReady() then
-    print('Database is ready')
+    -- Get a user from the database
+    local user = exports['ingenium.sql']:fetchSingle(
+        'SELECT * FROM users WHERE id = ?',
+        {1}  -- Parameters go here
+    )
+    
+    -- Check if user was found
+    if user then
+        print('Found user: ' .. user.name)
+    else
+        print('User not found')
+    end
+end
+```
+
+### Common Use Cases
+
+#### 1. Player Data Management
+
+```lua
+-- Get player data when they join
+RegisterNetEvent('playerJoining')
+AddEventHandler('playerJoining', function()
+    local src = source
+    local identifier = GetPlayerIdentifier(src, 0)
+    
+    -- Try to find existing player
+    local player = exports['ingenium.sql']:fetchSingle(
+        'SELECT * FROM players WHERE identifier = ?',
+        {identifier}
+    )
+    
+    if not player then
+        -- Create new player if not found
+        local insertId = exports['ingenium.sql']:insert(
+            'INSERT INTO players (identifier, name, first_joined) VALUES (?, ?, NOW())',
+            {identifier, GetPlayerName(src)}
+        )
+        print('Created new player with ID: ' .. insertId)
+    else
+        -- Update last seen
+        exports['ingenium.sql']:update(
+            'UPDATE players SET last_seen = NOW() WHERE id = ?',
+            {player.id}
+        )
+        print('Player ' .. player.name .. ' returned!')
+    end
+end)
+```
+
+#### 2. Inventory System
+
+```lua
+-- Get all items in player's inventory
+function GetPlayerInventory(playerId)
+    local items = exports['ingenium.sql']:query(
+        'SELECT * FROM inventory WHERE player_id = ? ORDER BY slot',
+        {playerId}
+    )
+    
+    -- Returns array of items, or empty array if none found
+    return items or {}
 end
 
--- Get Statistics
+-- Add item to inventory
+function AddItem(playerId, itemName, quantity)
+    -- Check if player already has this item
+    local existing = exports['ingenium.sql']:fetchSingle(
+        'SELECT * FROM inventory WHERE player_id = ? AND item_name = ?',
+        {playerId, itemName}
+    )
+    
+    if existing then
+        -- Update quantity
+        local affected = exports['ingenium.sql']:update(
+            'UPDATE inventory SET quantity = quantity + ? WHERE id = ?',
+            {quantity, existing.id}
+        )
+        return affected > 0
+    else
+        -- Insert new item
+        local insertId = exports['ingenium.sql']:insert(
+            'INSERT INTO inventory (player_id, item_name, quantity) VALUES (?, ?, ?)',
+            {playerId, itemName, quantity}
+        )
+        return insertId > 0
+    end
+end
+
+-- Remove item from inventory
+function RemoveItem(playerId, itemName, quantity)
+    local affected = exports['ingenium.sql']:update(
+        'UPDATE inventory SET quantity = quantity - ? WHERE player_id = ? AND item_name = ? AND quantity >= ?',
+        {quantity, playerId, itemName, quantity}
+    )
+    
+    if affected > 0 then
+        -- Clean up items with 0 quantity
+        exports['ingenium.sql']:update(
+            'DELETE FROM inventory WHERE player_id = ? AND quantity <= 0',
+            {playerId}
+        )
+        return true
+    end
+    
+    return false  -- Not enough items
+end
+```
+
+#### 3. Banking System with Transactions
+
+```lua
+-- Transfer money between accounts (atomic operation)
+function TransferMoney(fromAccount, toAccount, amount)
+    -- Get current balances first to validate
+    local fromBalance = exports['ingenium.sql']:fetchScalar(
+        'SELECT balance FROM accounts WHERE id = ?',
+        {fromAccount}
+    )
+    
+    if not fromBalance or fromBalance < amount then
+        return false, 'Insufficient funds'
+    end
+    
+    -- Execute transfer as a transaction (all or nothing)
+    local result = exports['ingenium.sql']:transaction({
+        {
+            query = 'UPDATE accounts SET balance = balance - ? WHERE id = ?',
+            parameters = {amount, fromAccount}
+        },
+        {
+            query = 'UPDATE accounts SET balance = balance + ? WHERE id = ?',
+            parameters = {amount, toAccount}
+        },
+        {
+            query = 'INSERT INTO transactions (from_account, to_account, amount, timestamp) VALUES (?, ?, ?, NOW())',
+            parameters = {fromAccount, toAccount, amount}
+        }
+    })
+    
+    if result.success then
+        return true, 'Transfer completed'
+    else
+        return false, 'Transaction failed'
+    end
+end
+
+-- Get account balance
+function GetBalance(accountId)
+    local balance = exports['ingenium.sql']:fetchScalar(
+        'SELECT balance FROM accounts WHERE id = ?',
+        {accountId}
+    )
+    return balance or 0
+end
+
+-- Get transaction history
+function GetTransactionHistory(accountId, limit)
+    limit = limit or 10
+    local transactions = exports['ingenium.sql']:query(
+        'SELECT * FROM transactions WHERE from_account = ? OR to_account = ? ORDER BY timestamp DESC LIMIT ?',
+        {accountId, accountId, limit}
+    )
+    return transactions or {}
+end
+```
+
+### Error Handling Examples
+
+```lua
+-- Example 1: Basic error handling with pcall
+local success, result = pcall(function()
+    return exports['ingenium.sql']:fetchSingle(
+        'SELECT * FROM users WHERE id = ?',
+        {userId}
+    )
+end)
+
+if success then
+    if result then
+        print('User found: ' .. result.name)
+    else
+        print('User not found')
+    end
+else
+    print('Database error: ' .. tostring(result))
+end
+
+-- Example 2: With callback for async operations
+exports['ingenium.sql']:query(
+    'SELECT * FROM users WHERE active = ?',
+    {1},
+    function(results)
+        if results then
+            print('Found ' .. #results .. ' active users')
+            for _, user in ipairs(results) do
+                print('- ' .. user.name)
+            end
+        else
+            print('Query failed or returned no results')
+        end
+    end
+)
+
+-- Example 3: Validating before operations
+function SafeUpdateUser(userId, newName)
+    -- Check if database is ready
+    if not exports['ingenium.sql']:isReady() then
+        return false, 'Database not ready'
+    end
+    
+    -- Validate input
+    if not userId or not newName or newName == '' then
+        return false, 'Invalid parameters'
+    end
+    
+    -- Check if user exists
+    local exists = exports['ingenium.sql']:fetchScalar(
+        'SELECT COUNT(*) FROM users WHERE id = ?',
+        {userId}
+    )
+    
+    if exists == 0 then
+        return false, 'User not found'
+    end
+    
+    -- Perform update
+    local affected = exports['ingenium.sql']:update(
+        'UPDATE users SET name = ? WHERE id = ?',
+        {newName, userId}
+    )
+    
+    if affected > 0 then
+        return true, 'User updated'
+    else
+        return false, 'Update failed'
+    end
+end
+```
+
+### Named Parameters vs Positional Parameters
+
+```lua
+-- Positional parameters (?) - slightly faster
+local user = exports['ingenium.sql']:fetchSingle(
+    'SELECT * FROM users WHERE name = ? AND age > ?',
+    {'John', 18}  -- Order must match the ? placeholders
+)
+
+-- Named parameters (@name) - more readable for complex queries
+local user = exports['ingenium.sql']:fetchSingle(
+    'SELECT * FROM users WHERE name = @name AND age > @minAge',
+    {name = 'John', minAge = 18}  -- Order doesn't matter
+)
+
+-- Named parameters are especially useful for complex queries
+local results = exports['ingenium.sql']:query(
+    [[
+        SELECT u.*, a.balance 
+        FROM users u 
+        LEFT JOIN accounts a ON u.id = a.user_id 
+        WHERE u.name LIKE @searchName 
+        AND u.age BETWEEN @minAge AND @maxAge 
+        AND a.balance > @minBalance
+    ]],
+    {
+        searchName = '%John%',
+        minAge = 18,
+        maxAge = 65,
+        minBalance = 1000
+    }
+)
+```
+
+### Batch Operations for Performance
+
+```lua
+-- Instead of multiple separate queries (slow):
+local user = exports['ingenium.sql']:fetchSingle('SELECT * FROM users WHERE id = ?', {userId})
+local inventory = exports['ingenium.sql']:query('SELECT * FROM inventory WHERE player_id = ?', {userId})
+local accounts = exports['ingenium.sql']:query('SELECT * FROM accounts WHERE user_id = ?', {userId})
+
+-- Use batch to execute all at once (faster):
+local results = exports['ingenium.sql']:batch({
+    {query = 'SELECT * FROM users WHERE id = ?', parameters = {userId}},
+    {query = 'SELECT * FROM inventory WHERE player_id = ?', parameters = {userId}},
+    {query = 'SELECT * FROM accounts WHERE user_id = ?', parameters = {userId}}
+})
+
+-- Access results by index
+local user = results[1][1]  -- First query, first row
+local inventory = results[2]  -- Second query, all rows
+local accounts = results[3]  -- Third query, all rows
+```
+
+### Prepared Statements for Repeated Queries
+
+```lua
+-- For queries executed many times, prepare them once
+local getUserQuery = exports['ingenium.sql']:prepareQuery(
+    'SELECT * FROM users WHERE id = ?'
+)
+
+-- Then execute multiple times with different parameters
+for i = 1, 100 do
+    local user = exports['ingenium.sql']:executePrepared(getUserQuery, {i})
+    if user then
+        print('Found user: ' .. user.name)
+    end
+end
+
+-- This is more efficient than calling query() 100 times
+```
+
+### Advanced: Checking Connection Status and Statistics
+
+```lua
+-- Check if database is ready before critical operations
+if not exports['ingenium.sql']:isReady() then
+    print('WARNING: Database not ready, waiting...')
+    -- Wait or retry logic here
+    return
+end
+
+-- Get performance statistics (useful for monitoring)
 local stats = exports['ingenium.sql']:getStats()
-print(json.encode(stats))
+print('Total queries: ' .. stats.totalQueries)
+print('Failed queries: ' .. stats.failedQueries)
+print('Average query time: ' .. stats.avgQueryTime .. 'ms')
+print('Slowest query: ' .. stats.slowestQuery .. 'ms')
+
+-- Log slow queries for optimization
+if stats.slowestQuery > 500 then
+    print('WARNING: Slow queries detected, check database indexes')
+end
 ```
 
 ### From Ingenium Core (ig.sql namespace)
@@ -344,10 +646,20 @@ FLUSH PRIVILEGES;
 
 ## Support
 
-For issues related to:
-- **This resource**: Open an issue in this repository
-- **Ingenium framework**: Contact the ingenium development team
-- **MySQL/MariaDB**: Consult official documentation
+**Need help?** We're here to assist!
+
+- **🐛 Found a bug?** [Report it using our Bug Report template](https://github.com/Ingenium-Games/ingenium.sql/issues/new/choose)
+  - **Important**: Issues must follow the template or they will be closed without review
+- **📖 Installation help?** Check our [Installation Guide](INSTALLATION.md) with step-by-step instructions
+- **💬 Questions or discussions?** Visit [GitHub Discussions](https://github.com/Ingenium-Games/ingenium.sql/discussions)
+- **🤝 Want to contribute?** Read our [Contributing Guide](CONTRIBUTING.md)
+- **📚 Ingenium framework issues?** Contact the Ingenium development team
+- **🔧 MySQL/MariaDB issues?** Consult the [official documentation](https://mariadb.com/kb/en/documentation/)
+
+**Before asking for help:**
+1. Read the [Installation Guide](INSTALLATION.md) and try troubleshooting steps
+2. Search existing issues to see if your problem has been solved
+3. Make sure you're using a supported version (Node.js 16+, MySQL 5.7+/MariaDB 10.3+)
 
 ## License
 

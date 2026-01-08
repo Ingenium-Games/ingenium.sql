@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 General Questions & Support
+    url: https://github.com/Ingenium-Games/ingenium.sql/discussions
+    about: Ask questions and discuss ingenium.sql with the community
+  - name: 📖 Installation Guide
+    url: https://github.com/Ingenium-Games/ingenium.sql/blob/main/INSTALLATION.md
+    about: Step-by-step installation instructions for beginners
+  - name: 📚 Documentation
+    url: https://github.com/Ingenium-Games/ingenium.sql/blob/main/README.md
+    about: Full documentation and API reference
