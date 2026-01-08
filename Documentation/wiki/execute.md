@@ -4,7 +4,7 @@ Smart query router that automatically detects query type and routes to the appro
 
 ## Description
 
-The `execute` function is a compatibility wrapper that provides automatic query type detection and routing. It analyzes the SQL query to determine if it's a SELECT, INSERT, UPDATE, or DELETE statement, then routes it to the appropriate handler function. This provides compatibility with both oxmysql and mysql-async libraries.
+The `execute` function is a compatibility wrapper that provides automatic query type detection and routing. It analyzes the SQL query to determine if it's a SELECT, INSERT, UPDATE, or DELETE statement, then calls the appropriate handler function ([`query`](query.md), [`insert`](insert.md), or [`update`](update.md)). This provides compatibility with both oxmysql and mysql-async libraries.
 
 ## Signature
 

@@ -237,7 +237,7 @@ end
 - ⚠️ **Check before critical operations**: Prevents errors when database is unavailable.
 - The function is fast and lightweight - safe to call frequently.
 - Connection can be lost temporarily - consider retry logic for critical operations.
-- Use with [`AwaitReady`](isReady.md#awaitable-pattern) in the `ig.sql` namespace for automatic waiting.
+- Use with [`AwaitReady`](#ingenium-framework-integration) in the `ig.sql` namespace for automatic waiting.
 
 ## Ingenium Framework Integration
 

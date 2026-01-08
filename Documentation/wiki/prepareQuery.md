@@ -223,7 +223,7 @@ end)
 1. **Reduced parsing overhead**: The query is parsed once, not every execution
 2. **Query plan caching**: Database can optimize and cache the execution plan
 3. **Type detection caching**: ingenium.sql caches the query type (SELECT, INSERT, etc.)
-4. **Parameter optimization**: mysql2 handles parameter binding more efficiently
+4. **Parameter optimization**: Parameter binding is handled more efficiently by the underlying database driver
 
 ## When to Use Prepared Queries
 
