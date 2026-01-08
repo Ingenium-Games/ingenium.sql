@@ -33,7 +33,12 @@ You can install `ingenium.sql` in two ways:
 1. Download the latest release from the [Releases page](https://github.com/Ingenium-Games/ingenium.sql/releases)
 2. Extract the contents to your FiveM `resources` folder
 3. Ensure the folder is named `ingenium.sql`
-4. Configure your MySQL connection in `server.cfg` (see Configuration below)
+4. Install Node.js dependencies:
+   ```bash
+   cd resources/ingenium.sql
+   npm install
+   ```
+5. Configure your MySQL connection in `server.cfg` (see Configuration below)
 
 ### Option 2: Build from Source
 1. Clone or download this repository to your FiveM `resources` folder
@@ -684,8 +689,8 @@ MIT License - See LICENSE file for details
 
 ### Version 1.0.2
 - First public stable release
-- Official release with pre-built node_modules
-- Updated installation documentation with download and build options
+- Updated installation documentation with two clear installation options
+- Clarified dependency installation process for both download and build methods
 
 ### Version 1.0.0
 - Initial release as external resource
