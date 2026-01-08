@@ -1,6 +1,6 @@
 {
   "name": "ingenium.sql",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "External MySQL connection pool resource for FiveM using mysql2 - Optimized for performance",
   "main": "server.js",
   "scripts": {
