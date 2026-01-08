@@ -1,0 +1,119 @@
+# =============================================================================
+# ingenium.sql Configuration Example
+# =============================================================================
+# Copy these lines to your server.cfg and customize with your database details
+#
+# SECURITY TIP: Never share your server.cfg file publicly with passwords in it!
+# =============================================================================
+
+# --- DATABASE CONNECTION (Choose ONE method) ---
+
+# METHOD 1: Connection String (RECOMMENDED - easiest setup)
+# This is the simplest way to configure your database connection.
+# Format: mysql://username:password@host:port/database_name
+# 
+# Replace these values with your actual database credentials:
+#   - username: Your database user (e.g., fivem_user)
+#   - password: Your database password (keep this secure!)
+#   - host: Database server address (use 'localhost' if on same machine)
+#   - port: Database port (default is 3306 for MySQL/MariaDB)
+#   - database_name: Name of your database (e.g., fivem_database)
+#
+# Example:
+set mysql_connection_string "mysql://fivem_user:your_secure_password@localhost:3306/fivem_database"
+
+
+# METHOD 2: Individual Settings (alternative)
+# If you prefer to set each option separately, comment out the connection 
+# string above and uncomment these lines below:
+#
+# set mysql_host "localhost"              # Database server address
+# set mysql_port "3306"                   # Database port (default: 3306)
+# set mysql_user "fivem_user"             # Database username
+# set mysql_password "your_secure_password"  # Database password (keep secure!)
+# set mysql_database "fivem_database"     # Database name
+#
+# IMPORTANT: Use EITHER the connection string OR individual settings, not both!
+# If both are provided, the connection string takes priority.
+
+
+# --- OPTIONAL SETTINGS ---
+
+# Maximum Concurrent Database Connections (default: 10)
+# This controls how many simultaneous database queries can run at once.
+# 
+# Recommendations by server size:
+#   - Small server (< 20 players): 5-10 connections
+#   - Medium server (20-50 players): 10-20 connections
+#   - Large server (50-100 players): 20-40 connections
+#   - Very large server (100+ players): 40-60 connections
+#
+# Note: More connections use more RAM. Start low and increase if needed.
+# Monitor using: exports['ingenium.sql']:getStats() from another resource
+#
+set mysql_connection_limit "10"
+
+
+# Character Encoding (default: utf8mb4)
+# utf8mb4 supports all Unicode characters including emoji and international text.
+# 
+# Options:
+#   - utf8mb4: RECOMMENDED - Full Unicode support (emoji, special characters)
+#   - utf8: Legacy Unicode support (no emoji)
+#   - latin1: Basic ASCII only (not recommended)
+#
+# Unless you have a specific reason, leave this as utf8mb4
+#
+set mysql_charset "utf8mb4"
+
+
+# --- ADVANCED OPTIONS (Usually not needed) ---
+
+# Connection Timeout (milliseconds)
+# How long to wait when establishing a new database connection
+# Default: 10000 (10 seconds)
+#
+# set mysql_connect_timeout "10000"
+
+# Query Timeout (milliseconds)  
+# Maximum time to wait for a query to complete
+# Default: 60000 (60 seconds)
+#
+# set mysql_query_timeout "60000"
+
+
+# --- START THE RESOURCE ---
+# This line should be added after your other resource 'ensure' lines
+# Make sure ingenium.sql starts before any resources that need database access
+#
+ensure ingenium.sql
+
+
+# =============================================================================
+# TROUBLESHOOTING TIPS
+# =============================================================================
+#
+# ❌ "Cannot connect to database"
+#    - Check that MySQL/MariaDB is running
+#    - Verify your username, password, and database name are correct
+#    - Make sure the database exists (create it if needed)
+#    - Check that your database user has proper permissions
+#
+# ❌ "Access denied for user"
+#    - Your username or password is incorrect
+#    - Or the database user doesn't have permissions on this database
+#    - Try connecting manually: mysql -u username -p database_name
+#
+# ❌ "Unknown database"
+#    - The database doesn't exist
+#    - Create it: CREATE DATABASE fivem_database;
+#
+# ❌ Resource fails to start
+#    - Check the resource folder is named exactly "ingenium.sql"
+#    - Make sure you ran "npm install" in the resource folder
+#    - Check FiveM server console for specific error messages
+#
+# 📖 For detailed help, see: 
+#    https://github.com/Ingenium-Games/ingenium.sql/blob/main/INSTALLATION.md
+#
+# =============================================================================

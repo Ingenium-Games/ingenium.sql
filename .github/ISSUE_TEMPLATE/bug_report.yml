@@ -1,0 +1,213 @@
+name: Bug Report
+description: Report an issue with ingenium.sql
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Thank you for reporting a bug!
+        
+        Please fill out this form completely. Issues that don't follow this template may be closed without review.
+        
+        **Before submitting:**
+        - Make sure you've checked the [Installation Guide](https://github.com/Ingenium-Games/ingenium.sql/blob/main/INSTALLATION.md)
+        - Search existing issues to see if this has been reported before
+        - Try the troubleshooting steps in the documentation
+
+  - type: input
+    id: resource-version
+    attributes:
+      label: Resource Version
+      description: What version of ingenium.sql are you using? (Check package.json or releases page)
+      placeholder: "e.g., 1.0.1"
+    validations:
+      required: true
+
+  - type: input
+    id: fivem-version
+    attributes:
+      label: FiveM Server Version
+      description: What version of FiveM server are you running? (Check server console or txAdmin)
+      placeholder: "e.g., 6683 or latest"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating System
+      description: What operating system is your FiveM server running on?
+      options:
+        - Windows 10
+        - Windows 11
+        - Windows Server 2016
+        - Windows Server 2019
+        - Windows Server 2022
+        - Ubuntu 20.04
+        - Ubuntu 22.04
+        - Debian 10
+        - Debian 11
+        - CentOS 7
+        - CentOS 8
+        - Other Linux
+        - macOS
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: nodejs-version
+    attributes:
+      label: Node.js Version
+      description: What version of Node.js are you using? Run `node --version` to find out
+      placeholder: "e.g., v18.17.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database-type
+    attributes:
+      label: Database Type and Version
+      description: What database are you using?
+      options:
+        - MariaDB 10.6+
+        - MariaDB 10.3-10.5
+        - MySQL 8.0+
+        - MySQL 5.7
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Problem
+      description: Please describe the issue you're experiencing in detail
+      placeholder: |
+        Example: When I start my FiveM server, the ingenium.sql resource starts but I get an "Access denied" error when other resources try to query the database.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Clear steps to reproduce the bug
+      placeholder: |
+        1. Install ingenium.sql following the guide
+        2. Configure server.cfg with connection string
+        3. Start FiveM server
+        4. Attempt to execute a query from another resource
+        5. See error in console
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "The query should execute successfully and return results"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: "I received an 'Access denied for user' error"
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: Error Messages and Logs
+      description: |
+        Please paste any error messages or relevant logs here.
+        
+        **How to copy logs:**
+        - **From FiveM Console**: Select the error text, right-click, and choose Copy
+        - **From Server Console**: Scroll to the error, select text, and copy
+        - **From txAdmin**: Check the Live Console tab and copy relevant messages
+        
+        **Tip**: Include a few lines before and after the error for context
+      render: shell
+      placeholder: |
+        Example:
+        [   script:ingenium.sql] Error: Access denied for user 'fivem_user'@'localhost' (using password: YES)
+        [   script:ingenium.sql]     at Packet.asError (node_modules/mysql2/lib/packets/packet.js:728:17)
+        [   script:ingenium.sql]     at Connection.handlePacket (node_modules/mysql2/lib/connection.js:422:18)
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: |
+        If applicable, add screenshots to help explain your problem.
+        
+        **How to add screenshots:**
+        - Take a screenshot using your OS screenshot tool
+        - Drag and drop the image file here, or paste from clipboard
+        - Multiple screenshots are welcome!
+      placeholder: Drag and drop images here or paste from clipboard
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration (server.cfg)
+      description: |
+        Please share your ingenium.sql configuration from server.cfg (REMOVE PASSWORDS!)
+        
+        **IMPORTANT**: Replace your actual password with "****" or "REDACTED"
+      render: cfg
+      placeholder: |
+        Example (with password removed):
+        set mysql_connection_string "mysql://fivem_user:****@localhost:3306/fivem_database"
+        set mysql_connection_limit "10"
+        set mysql_charset "utf8mb4"
+        ensure ingenium.sql
+    validations:
+      required: true
+
+  - type: dropdown
+    id: troubleshooting-attempted
+    attributes:
+      label: Have you tried troubleshooting steps?
+      description: |
+        Have you checked the [Installation Guide](https://github.com/Ingenium-Games/ingenium.sql/blob/main/INSTALLATION.md) and tried the troubleshooting section?
+      options:
+        - "Yes, I've tried troubleshooting steps"
+        - "No, I haven't tried troubleshooting yet"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be helpful
+      placeholder: |
+        - Are you using txAdmin or running server manually?
+        - Are you using any other database resources?
+        - Did this work before and suddenly stop?
+        - Any recent changes to your server?
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I have checked the Installation Guide and tried troubleshooting steps
+          required: true
+        - label: I have removed any sensitive information (passwords, IPs, etc.) from my report
+          required: true
+        - label: I have provided all required information above
+          required: true
