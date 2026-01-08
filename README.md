@@ -4,7 +4,7 @@ External MySQL connection pool resource for FiveM using mysql2.
 
 ## Overview
 
-`ingenium.sql` is a standalone FiveM resource that provides MySQL database connectivity for the Ingenium framework. The resource folder should be named `ingenium.sql` and other resources should reference it as `exports['ingenium.sql']` when importing functionality. It replaces the previously internalized mysql2 implementation that had timeout issues, offering a robust, external SQL connector.
+`ingenium.sql` is a standalone FiveM resource that provides MySQL database connectivity for the Ingenium framework. The resource folder should be named `ingenium.sql` and other resources should reference it as `exports['ingenium.sql']` when importing functionality.
 
 ## Features
 
@@ -219,14 +219,6 @@ This resource follows the oxmysql architecture pattern:
 
 ## Troubleshooting
 
-### Connection Timeouts
-
-The previous implementation had issues with connections timing out despite being active. This version addresses this with:
-
-- `enableKeepAlive: true` - Sends keep-alive packets
-- `keepAliveInitialDelay: 10000` - Starts keep-alive after 10 seconds
-- Proper connection pool management with automatic reconnection
-
 ### Slow Queries
 
 Queries taking longer than 150ms are logged as warnings. Check your:
@@ -341,15 +333,14 @@ sudo mysql_secure_installation
 **Windows:**
 Download from [MariaDB.org](https://mariadb.org/download/)
 
-**Create Database:**
+**Create Database User with limited permissions:**
 ```sql
-CREATE DATABASE fivem CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'fivem'@'localhost' IDENTIFIED BY 'yourpassword';
 GRANT SELECT, INSERT, UPDATE, DELETE ON fivem.* TO 'fivem'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-**Note:** The FiveM database user only requires SELECT, INSERT, UPDATE, and DELETE privileges for normal operation. Database schema updates and migrations should be run by a higher-privileged account separately, keeping the connection handler's scope limited for security.
+**Note:** The FiveM database user should only really need SELECT, INSERT, UPDATE, and DELETE privileges for normal operation. Database schema updates and migrations should be run by a higher-privileged account separately, keeping the connection handler's scope limited for security.
 
 ## Support
 
