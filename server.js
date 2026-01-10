@@ -485,3 +485,76 @@ global.exports('execute', execute);           // oxmysql/mysql-async: smart exec
 global.exports('fetchAll', query);            // mysql-async: fetchAll = query
 
 console.log('^2[ig.sql] Server exports registered (with oxmysql/mysql-async compatibility)^7');
+
+// ====================================================================================
+// Test Command - Check SQL Connection
+// ====================================================================================
+
+/**
+ * Register /sqlcheck command to test database connection
+ * Checks if the 'db' database exists
+ */
+RegisterCommand('sqlcheck', async (source, args, rawCommand) => {
+    try {
+        const playerId = source;
+        
+        // Check if pool is ready
+        if (!isReady()) {
+            const message = '^1[SQL Check] Database connection pool is not ready^7';
+            console.log(message);
+            if (playerId > 0) {
+                emitNet('chat:addMessage', playerId, {
+                    color: [255, 0, 0],
+                    multiline: true,
+                    args: ['SQL Check', 'Database connection pool is not ready']
+                });
+            }
+            return;
+        }
+
+        // Test query to check if database 'db' exists
+        const testQuery = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'db'";
+        
+        console.log('^3[SQL Check] Testing database connection...^7');
+        
+        const result = await query(testQuery, []);
+        
+        if (result && result.length > 0) {
+            const successMessage = `^2[SQL Check] SUCCESS: Database 'db' exists and is accessible^7`;
+            console.log(successMessage);
+            console.log(`^2[SQL Check] Pool Stats: ${JSON.stringify(getStats())}^7`);
+            
+            if (playerId > 0) {
+                emitNet('chat:addMessage', playerId, {
+                    color: [0, 255, 0],
+                    multiline: true,
+                    args: ['SQL Check', `✓ SUCCESS: Database 'db' exists and is accessible`]
+                });
+            }
+        } else {
+            const notFoundMessage = `^3[SQL Check] WARNING: Database 'db' does not exist^7`;
+            console.log(notFoundMessage);
+            
+            if (playerId > 0) {
+                emitNet('chat:addMessage', playerId, {
+                    color: [255, 165, 0],
+                    multiline: true,
+                    args: ['SQL Check', `⚠ WARNING: Database 'db' does not exist`]
+                });
+            }
+        }
+    } catch (error) {
+        const errorMessage = `^1[SQL Check] ERROR: ${error.message}^7`;
+        console.error(errorMessage);
+        
+        if (source > 0) {
+            emitNet('chat:addMessage', source, {
+                color: [255, 0, 0],
+                multiline: true,
+                args: ['SQL Check', `✗ ERROR: ${error.message}`]
+            });
+        }
+    }
+}, false); // false = can be run by anyone (not restricted to admins)
+
+console.log('^2[ig.sql] /sqlcheck command registered^7');
