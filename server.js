@@ -557,4 +557,4 @@ RegisterCommand('sqlcheck', async (source, args, rawCommand) => {
     }
 }, false); // false = can be run by anyone (not restricted to admins)
 
-console.log('^2[ig.sql] /sqlcheck command registered^7');
+console.log('^2[ingenium.sql] /sqlcheck command registered^7');
