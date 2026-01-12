@@ -176,13 +176,13 @@ end
 -- ====================================================================================--
 
 Citizen.CreateThread(function()
-    print("^2[SQL Handler] Lua wrapper interface loaded^7")
+    ig.log.Info("SQL Handler", "Lua wrapper interface loaded")
     
     -- Wait for SQL to be ready
     if ig.sql.AwaitReady() then
-        print("^2[SQL Handler] Connection ready^7")
+        ig.log.Info("SQL Handler", "Connection ready")
     else
-        print("^1[SQL Handler] Connection timeout - check your MySQL configuration^7")
+        ig.log.Error("SQL Handler", "Connection timeout - check your MySQL configuration")
     end
 end)
 
@@ -192,13 +192,11 @@ end)
 
 -- SQL ready event
 AddEventHandler('ingenium.sql:Ready', function()
-    print("^2[SQL Handler] Database connection established^7")
+    ig.log.Info("SQL Handler", "Database connection established")
 end)
 
 -- Slow query logging
 AddEventHandler('ingenium.sql:SlowQuery', function(data)
-    print(string.format("^3[SQL WARNING] Slow query detected: %.2fms^7", data.duration))
-    if conf and conf.debug then
-        print(string.format("^3[SQL] Query: %s^7", data.query))
-    end
+    ig.log.Warn("SQL", "Slow query detected: %.2fms", data.duration)
+    ig.log.Debug("SQL", "Query: %s", data.query)
 end)
