@@ -2,6 +2,15 @@
  * MySQL2 Connection Pool Manager
  * Integrated in-resource MySQL connection pool using mysql2
  * Based on oxmysql architecture adapted for ig.core
+ * 
+ * Events Emitted:
+ * - ingenium.sql:Ready - Emitted when database connection is established
+ * - ingenium.sql:SlowQuery - Emitted when a query takes longer than 150ms
+ *   Data: { query, duration, parameters }
+ * - ig:sql:queryExecuted - Emitted after every query execution (for monitoring/debugging)
+ *   Data: { query, duration, success, error? }
+ *   Note: This event is intended for external monitoring tools or debugging.
+ *   Add an event handler in your resource if you need to track query execution.
  */
 
 const mysql = require('mysql2/promise');
