@@ -368,6 +368,8 @@ async function executePrepared(queryId, parameters, callback) {
 /**
  * Execute function - compatibility wrapper for oxmysql and mysql-async
  * Automatically routes to the appropriate function based on query type
+ * Note: Callbacks are handled by this function's withPoolCheck wrapper, not passed
+ * to the underlying query functions, to avoid double-callback invocation.
  */
 async function execute(sqlQuery, parameters, callback) {
     return withPoolCheck(
@@ -376,6 +378,7 @@ async function execute(sqlQuery, parameters, callback) {
             
             switch (queryType) {
                 case 'SELECT':
+                    // Call without callback - result will bubble up to our withPoolCheck
                     return await query(sqlQuery, parameters);
                 case 'INSERT':
                     return await insert(sqlQuery, parameters);
