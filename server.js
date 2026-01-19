@@ -99,149 +99,123 @@ function processParameters(query, parameters) {
 }
 
 /**
- * Execute a SELECT query that returns multiple rows
+ * Helper function to execute callback if provided
+ * @param {*} result - The result to return
+ * @param {Function} callback - Optional callback function
+ * @returns {*} The result
  */
-async function query(query, parameters, callback) {
+function executeCallback(result, callback) {
+    if (callback && typeof callback === 'function') {
+        callback(result);
+    }
+    return result;
+}
+
+/**
+ * Helper function to wrap query execution with pool readiness check and error handling
+ * @param {Function} asyncFn - The async function to execute
+ * @param {string} errorContext - Context string for error messages
+ * @param {*} defaultReturn - Default value to return on error
+ * @param {Function} callback - Optional callback function
+ * @returns {Promise<*>} Result or default value
+ */
+async function withPoolCheck(asyncFn, errorContext, defaultReturn, callback) {
     try {
         if (!global.pool || !global.pool.ready()) {
             throw new Error('Connection pool is not ready');
         }
-
-        const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await global.pool.execute(processedQuery, params);
-
-        if (callback && typeof callback === 'function') {
-            callback(results);
-        }
-
-        return results;
+        const result = await asyncFn();
+        return executeCallback(result, callback);
     } catch (error) {
-        console.error(`^1[ig.sql ERROR] Query failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback([]);
-        }
-        return [];
+        console.error(`^1[ig.sql ERROR] ${errorContext}: ${error.message}^7`);
+        return executeCallback(defaultReturn, callback);
     }
+}
+
+/**
+ * Execute a SELECT query that returns multiple rows
+ */
+async function query(query, parameters, callback) {
+    return withPoolCheck(
+        async () => {
+            const { query: processedQuery, params } = processParameters(query, parameters);
+            return await global.pool.execute(processedQuery, params);
+        },
+        'Query failed',
+        [],
+        callback
+    );
 }
 
 /**
  * Execute a SELECT query that returns a single row
  */
 async function fetchSingle(query, parameters, callback) {
-    try {
-        if (!global.pool || !global.pool.ready()) {
-            throw new Error('Connection pool is not ready');
-        }
-
-        const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await global.pool.execute(processedQuery, params);
-
-        const result = results.length > 0 ? results[0] : null;
-
-        if (callback && typeof callback === 'function') {
-            callback(result);
-        }
-
-        return result;
-    } catch (error) {
-        console.error(`^1[ig.sql ERROR] FetchSingle failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback(null);
-        }
-        return null;
-    }
+    return withPoolCheck(
+        async () => {
+            const { query: processedQuery, params } = processParameters(query, parameters);
+            const results = await global.pool.execute(processedQuery, params);
+            return results.length > 0 ? results[0] : null;
+        },
+        'FetchSingle failed',
+        null,
+        callback
+    );
 }
 
 /**
  * Execute a SELECT query that returns a single value (scalar)
  */
 async function fetchScalar(query, parameters, callback) {
-    try {
-        if (!global.pool || !global.pool.ready()) {
-            throw new Error('Connection pool is not ready');
-        }
-
-        const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await global.pool.execute(processedQuery, params);
-
-        let value = null;
-        if (results.length > 0) {
-            const firstRow = results[0];
-            // Get the first value from the first row
-            const firstKey = Object.keys(firstRow)[0];
-            value = firstRow[firstKey];
-        }
-
-        if (callback && typeof callback === 'function') {
-            callback(value);
-        }
-
-        return value;
-    } catch (error) {
-        console.error(`^1[ig.sql ERROR] FetchScalar failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback(null);
-        }
-        return null;
-    }
+    return withPoolCheck(
+        async () => {
+            const { query: processedQuery, params } = processParameters(query, parameters);
+            const results = await global.pool.execute(processedQuery, params);
+            
+            let value = null;
+            if (results.length > 0) {
+                const firstRow = results[0];
+                const firstKey = Object.keys(firstRow)[0];
+                value = firstRow[firstKey];
+            }
+            return value;
+        },
+        'FetchScalar failed',
+        null,
+        callback
+    );
 }
 
 /**
  * Execute an INSERT query and return the insert ID
  */
 async function insert(query, parameters, callback) {
-    try {
-        if (!global.pool || !global.pool.ready()) {
-            throw new Error('Connection pool is not ready');
-        }
-
-        const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await global.pool.execute(processedQuery, params);
-
-        // For INSERT queries, mysql2 returns an object with insertId
-        const insertId = results.insertId || 0;
-
-        if (callback && typeof callback === 'function') {
-            callback(insertId);
-        }
-
-        return insertId;
-    } catch (error) {
-        console.error(`^1[ig.sql ERROR] Insert failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback(0);
-        }
-        return 0;
-    }
+    return withPoolCheck(
+        async () => {
+            const { query: processedQuery, params } = processParameters(query, parameters);
+            const results = await global.pool.execute(processedQuery, params);
+            return results.insertId || 0;
+        },
+        'Insert failed',
+        0,
+        callback
+    );
 }
 
 /**
  * Execute an UPDATE or DELETE query and return affected rows
  */
 async function update(query, parameters, callback) {
-    try {
-        if (!global.pool || !global.pool.ready()) {
-            throw new Error('Connection pool is not ready');
-        }
-
-        const { query: processedQuery, params } = processParameters(query, parameters);
-        const results = await global.pool.execute(processedQuery, params);
-
-        // For UPDATE/DELETE queries, mysql2 returns an object with affectedRows
-        const affectedRows = results.affectedRows || 0;
-
-        if (callback && typeof callback === 'function') {
-            callback(affectedRows);
-        }
-
-        return affectedRows;
-    } catch (error) {
-        console.error(`^1[ig.sql ERROR] Update failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback(0);
-        }
-        return 0;
-    }
+    return withPoolCheck(
+        async () => {
+            const { query: processedQuery, params } = processParameters(query, parameters);
+            const results = await global.pool.execute(processedQuery, params);
+            return results.affectedRows || 0;
+        },
+        'Update failed',
+        0,
+        callback
+    );
 }
 
 /**
@@ -299,35 +273,23 @@ async function transaction(queries, callback) {
  * Execute multiple queries as a batch (without transaction)
  */
 async function batch(queries, callback) {
-    try {
-        if (!global.pool || !global.pool.ready()) {
-            throw new Error('Connection pool is not ready');
-        }
-
-        const results = [];
-
-        for (const queryData of queries) {
-            const { query: processedQuery, params } = processParameters(
-                queryData.query || queryData[0],
-                queryData.parameters || queryData[1] || []
-            );
-
-            const result = await global.pool.execute(processedQuery, params);
-            results.push(result);
-        }
-
-        if (callback && typeof callback === 'function') {
-            callback(results);
-        }
-
-        return results;
-    } catch (error) {
-        console.error(`^1[ig.sql ERROR] Batch failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback([]);
-        }
-        return [];
-    }
+    return withPoolCheck(
+        async () => {
+            const results = [];
+            for (const queryData of queries) {
+                const { query: processedQuery, params } = processParameters(
+                    queryData.query || queryData[0],
+                    queryData.parameters || queryData[1] || []
+                );
+                const result = await global.pool.execute(processedQuery, params);
+                results.push(result);
+            }
+            return results;
+        },
+        'Batch failed',
+        [],
+        callback
+    );
 }
 
 // Cache for query type detection (performance optimization)
@@ -373,27 +335,6 @@ function detectQueryType(sqlQuery) {
 }
 
 /**
- * Helper function to execute a query by routing to appropriate handler based on query type (OPTIMIZED)
- */
-async function executeByQueryType(sqlQuery, parameters, callback) {
-    const queryType = detectQueryType(sqlQuery);
-    
-    switch (queryType) {
-        case 'SELECT':
-            return await query(sqlQuery, parameters, callback);
-        case 'INSERT':
-            return await insert(sqlQuery, parameters, callback);
-        case 'UPDATE':
-        case 'DELETE':
-            return await update(sqlQuery, parameters, callback);
-        default:
-            // Log warning for unknown query types
-            console.warn(`^3[ig.sql WARNING] Unknown query type '${queryType}', defaulting to query handler^7`);
-            return await query(sqlQuery, parameters, callback);
-    }
-}
-
-/**
  * Prepare a query for later execution
  * Returns a query ID that can be used with executePrepared
  */
@@ -416,46 +357,43 @@ async function executePrepared(queryId, parameters, callback) {
         if (!preparedQueries.has(queryId)) {
             throw new Error(`Prepared query not found: ${queryId}`);
         }
-
         const storedQuery = preparedQueries.get(queryId);
-        return await executeByQueryType(storedQuery, parameters, callback);
+        return await execute(storedQuery, parameters, callback);
     } catch (error) {
         console.error(`^1[ig.sql ERROR] ExecutePrepared failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback(null);
-        }
-        return null;
+        return executeCallback(null, callback);
     }
-}
-
-/**
- * Check if connection pool is ready
- */
-function isReady() {
-    return global.pool ? global.pool.ready() : false;
-}
-
-/**
- * Get pool statistics
- */
-function getStats() {
-    return global.pool ? global.pool.getStats() : null;
 }
 
 /**
  * Execute function - compatibility wrapper for oxmysql and mysql-async
  * Automatically routes to the appropriate function based on query type
+ * Note: Callbacks are handled by this function's withPoolCheck wrapper, not passed
+ * to the underlying query functions, to avoid double-callback invocation.
  */
 async function execute(sqlQuery, parameters, callback) {
-    try {
-        return await executeByQueryType(sqlQuery, parameters, callback);
-    } catch (error) {
-        console.error(`^1[ig.sql ERROR] Execute failed: ${error.message}^7`);
-        if (callback && typeof callback === 'function') {
-            callback(null);
-        }
-        return null;
-    }
+    return withPoolCheck(
+        async () => {
+            const queryType = detectQueryType(sqlQuery);
+            
+            switch (queryType) {
+                case 'SELECT':
+                    // Call without callback - result will bubble up to our withPoolCheck
+                    return await query(sqlQuery, parameters);
+                case 'INSERT':
+                    return await insert(sqlQuery, parameters);
+                case 'UPDATE':
+                case 'DELETE':
+                    return await update(sqlQuery, parameters);
+                default:
+                    console.warn(`^3[ig.sql WARNING] Unknown query type '${queryType}', defaulting to query handler^7`);
+                    return await query(sqlQuery, parameters);
+            }
+        },
+        'Execute failed',
+        null,
+        callback
+    );
 }
 
 // ====================================================================================
@@ -472,8 +410,8 @@ global.exports('transaction', transaction);
 global.exports('batch', batch);
 global.exports('prepareQuery', prepareQuery);
 global.exports('executePrepared', executePrepared);
-global.exports('isReady', isReady);
-global.exports('getStats', getStats);
+global.exports('isReady', () => global.pool ? global.pool.ready() : false);
+global.exports('getStats', () => global.pool ? global.pool.getStats() : null);
 
 // ====================================================================================
 // Compatibility exports for oxmysql and mysql-async
@@ -499,7 +437,7 @@ RegisterCommand('sqlcheck', async (source, args, rawCommand) => {
         const playerId = source;
         
         // Check if pool is ready
-        if (!isReady()) {
+        if (!global.pool || !global.pool.ready()) {
             const message = '^1[SQL Check] Database connection pool is not ready^7';
             console.log(message);
             if (playerId > 0) {
@@ -522,7 +460,7 @@ RegisterCommand('sqlcheck', async (source, args, rawCommand) => {
         if (result && result.length > 0) {
             const successMessage = `^2[SQL Check] SUCCESS: Database 'db' exists and is accessible^7`;
             console.log(successMessage);
-            console.log(`^2[SQL Check] Pool Stats: ${JSON.stringify(getStats())}^7`);
+            console.log(`^2[SQL Check] Pool Stats: ${JSON.stringify(global.pool.getStats())}^7`);
             
             if (playerId > 0) {
                 emitNet('chat:addMessage', playerId, {
